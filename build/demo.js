@@ -21,7 +21,7 @@ let D, ph, OFF, mode = "fix", loop = null, head = null, DUR = 1, BARS = [], WORD
 const isFlag = p => p.e && p.n && p.s < D.flag;
 
 function load(i) {
-  const o = ORDER[i]; D = EX[o.key]; ph = D.phones; OFF = D.off_ms / 1000; loop = null;
+  const o = ORDER[i]; D = EX[o.key]; ph = D.phones; OFF = D.off_ms / 1000; loop = null; $("loopChip").hidden = true;
   document.querySelectorAll("#pick button").forEach((b, j) => b.classList.toggle("on", j === i));
   CUR = o.file; setSrc(false); setSpeed(1);
   const judged = ph.filter(p => p.e && p.n), flagged = judged.filter(isFlag);
@@ -121,7 +121,7 @@ const srcFor = () => mode === "fix" ? CUR.replace(/\.mp4$/, "_shift.mp4") : CUR;
 function setSrc(keep) {
   const t = vid.currentTime, playing = !vid.paused, r = vid.playbackRate;
   vid.src = srcFor();
-  if (keep) vid.addEventListener("loadedmetadata", () => { vid.currentTime = t; vid.playbackRate = r; if (playing) vid.play().catch(() => {}); }, { once: true });
+  if (keep) vid.addEventListener("loadedmetadata", () => { seekTo(t); vid.playbackRate = r; if (playing) vid.play().catch(() => {}); }, { once: true });
 }
 function setMode(m) {
   mode = m; $("m-fix").classList.toggle("on", m === "fix"); $("m-ship").classList.toggle("on", m === "ship");
@@ -129,20 +129,33 @@ function setMode(m) {
 }
 function setSpeed(r) { vid.playbackRate = r; [["s-1", 1], ["s-05", .5], ["s-025", .25]].forEach(([id, v]) => $(id).classList.toggle("on", v === r)); }
 $("m-fix").onclick = () => setMode("fix"); $("m-ship").onclick = () => setMode("ship");
-$("s-1").onclick = () => setSpeed(1); $("s-05").onclick = () => setSpeed(.5); $("s-025").onclick = () => setSpeed(.25);
+// a speed button always wins: it ends any replay loop and keeps the chosen speed
+$("s-1").onclick = () => { endLoop(); setSpeed(1); }; $("s-05").onclick = () => { endLoop(); setSpeed(.5); }; $("s-025").onclick = () => { endLoop(); setSpeed(.25); };
 vid.addEventListener("seeked", tick);
+// seeks the page makes itself (replay loop, clip switch) are marked, so any OTHER seek is the user scrubbing
+let ourSeekUntil = 0, preLoopSpeed = 1;
+function seekTo(t) { ourSeekUntil = performance.now() + 400; try { vid.currentTime = Math.max(0, t); } catch (e) {} }
+function endLoop(restore) {
+  if (!loop) return;
+  loop = null; $("loopChip").hidden = true;
+  if (restore) setSpeed(preLoopSpeed);
+}
+$("loopChip").onclick = () => { endLoop(true); vid.play().catch(() => {}); };
 // the mouth for a sound heard at t is on screen at t - OFF; clicking loops it at quarter speed
 function jump(p) {
   const c = (p.t0 + p.t1) / 2 - OFF;
+  if (!loop) preLoopSpeed = vid.playbackRate;
   loop = [Math.max(0, c - 0.4), c + 0.4];
   setSpeed(.25);
-  vid.currentTime = loop[0]; vid.play().catch(() => {});
+  $("loopChip").textContent = `Replaying ${p.p} in “${p.w}” at ¼× · back to normal`; $("loopChip").hidden = false;
+  seekTo(loop[0]); vid.play().catch(() => {});
 }
-vid.addEventListener("seeking", () => { if (loop && (vid.currentTime < loop[0] - 0.05 || vid.currentTime > loop[1] + 0.05)) loop = null; });
+// the user dragging the scrubber leaves the replay loop and returns to the speed they had before it
+vid.addEventListener("seeking", () => { if (loop && performance.now() > ourSeekUntil) endLoop(true); });
 
 function tick() {
   if (!D) return;
-  if (loop && vid.currentTime >= loop[1]) vid.currentTime = loop[0];
+  if (loop && vid.currentTime >= loop[1]) seekTo(loop[0]);
   const ta = vid.currentTime + OFF;
   if (head) head.style.left = (100 * ta / DUR) + "%";
   const p = ph.find(q => ta >= q.t0 && ta < q.t1);
@@ -165,7 +178,15 @@ function tick() {
     const W = vid.videoWidth, H = vid.videoHeight, w = b[2] * W, h = w / 2;
     try { zc.drawImage(vid, b[0] * W - w / 2, b[1] * H - h / 2, w, h, 0, 0, 320, 160); } catch (e) {}
   }
-  if (!vid.paused) (vid.requestVideoFrameCallback ? vid.requestVideoFrameCallback(tick) : requestAnimationFrame(tick));
+  schedule();
+}
+// exactly one frame loop at a time: every call bumps the generation, so older pending callbacks become no-ops
+// (calling tick from play/seeked/loadeddata used to stack a new loop each time while playing)
+let gen = 0;
+function schedule() {
+  if (vid.paused) return;
+  const g = ++gen, cb = () => { if (g === gen) tick(); };
+  vid.requestVideoFrameCallback ? vid.requestVideoFrameCallback(cb) : requestAnimationFrame(cb);
 }
 vid.addEventListener("play", tick); vid.addEventListener("loadeddata", tick);
 // clip picker

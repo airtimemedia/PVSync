@@ -77,3 +77,7 @@
   @media (prefers-reduced-motion: reduce) { .demo .now { transition: none; } }
 
 
+
+  .demo .loopchip { order: 10; flex-basis: 100%; text-align: left; font: 500 12.5px var(--font); color: var(--accent); background: rgba(0,199,190,.1); border: 1px solid rgba(0,199,190,.4); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .demo .loopchip:hover { background: rgba(0,199,190,.18); }
+  .demo .loopchip[hidden] { display: none; }
