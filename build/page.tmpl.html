@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PVSync</title>
+<meta name="description" content="PVSync checks lip sync the way people do: it finds the audio offset, then checks every sound against the shape of the lips.">
+<meta property="og:title" content="PVSync: A Unified Lip-Sync Expert for Timing and Articulation">
+<meta property="og:description" content="Finds the audio offset, then checks every sound against the shape of the lips. Agrees with human rankings of 13 talking-head generators at Spearman 0.83 (LSE-C: 0.34).">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="images/cantina-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+:root {
+  /* Product-page layout after video-diffusion-avatars: a dark cinematic hero with the clips playing, then a white
+     body on a 1200px measure; sections alternate paper and mist, and the live demo sits on a night stage. */
+  --night: #0b0f10; --night-2: #151b1c;
+  --paper: #ffffff; --mist: #f3f6f6; --line: #e1e7e7;
+  --ink: #0f1515; --ink-2: #3b4747; --sub: #5d6a6a;
+  --teal: #00C7BE; --teal-ink: #037a74;
+  --on-night: #eef3f2; --on-night-muted: #9aa8a6;
+  --serif: "Newsreader", "Iowan Old Style", "Times New Roman", serif;
+  --sans: "Geist", "Helvetica Neue", Arial, sans-serif;
+  --mono-f: "Geist Mono", ui-monospace, Menlo, monospace;
+  --gutter: clamp(16px, 4vw, 32px);
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+img, video, canvas { display: block; max-width: 100%; }
+a { color: var(--teal-ink); text-decoration: none; } a:hover { text-decoration: underline; text-underline-offset: 3px; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1200px; margin-inline: auto; padding-inline: var(--gutter); }
+.wrap.narrow { max-width: 960px; }
+h2.big { font: 500 clamp(2rem, 4.2vw, 3rem)/1.08 var(--serif); letter-spacing: -0.015em; margin: 0 0 14px; text-wrap: balance; }
+.lede { font-size: 1.08rem; color: var(--sub); max-width: 720px; margin: 0 0 28px; }
+section.band { padding-block: clamp(56px, 8vw, 96px); }
+section.mist { background: var(--mist); }
+.kicker { font: 500 11px/1 var(--mono-f); letter-spacing: .12em; text-transform: uppercase; color: var(--teal-ink); margin-bottom: 12px; }
+
+/* top bar: slides in once the hero has scrolled away */
+.topnav { position: fixed; inset: 0 0 auto 0; z-index: 40; background: rgba(11,15,16,.86); backdrop-filter: saturate(1.4) blur(10px);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid rgba(255,255,255,.08); transform: translateY(-105%); transition: transform .3s ease; }
+.topnav.show { transform: none; }
+.topnav-in { display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 56px; }
+.topnav .brand { display: flex; align-items: center; gap: 12px; color: var(--on-night); font: 500 1.1rem/1 var(--serif); }
+.topnav .brand img { height: 18px; } .topnav .brand:hover { text-decoration: none; }
+.topnav-links { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; }
+.topnav-links a { font: 500 .86rem/1 var(--sans); color: var(--on-night-muted); white-space: nowrap; } .topnav-links a:hover { color: #fff; text-decoration: none; }
+@media (max-width: 640px) { .topnav .brand span { display: none; } .topnav-links { gap: 16px; } }
+
+/* hero */
+.hero { background: radial-gradient(1200px 500px at 50% -10%, rgba(0,199,190,.16), transparent 70%), var(--night); color: var(--on-night);
+  padding-block: clamp(28px, 5vw, 44px) 44px; overflow: hidden; }
+.hero-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: clamp(36px, 7vw, 72px); }
+.hero-bar img { height: 22px; }
+.hero-bar a.small { font: 500 12px var(--mono-f); color: var(--on-night-muted); letter-spacing: .06em; }
+.hero-text { text-align: center; }
+.hero h1 { font: 500 clamp(3rem, 9vw, 6.4rem)/.95 var(--serif); letter-spacing: -0.025em; margin: 0; }
+.tagline { font: 400 clamp(1.4rem, 3.4vw, 2.4rem)/1.2 var(--serif); color: var(--on-night-muted); margin: .7rem auto 1.8rem; max-width: 900px; text-wrap: balance; }
+.tagline em { color: var(--on-night); font-style: italic; }
+.authors, .affils { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; }
+.authors { gap: .35rem 1.4rem; font-size: 1.05rem; }
+.affils { gap: .2rem 1.2rem; font-size: .88rem; color: var(--on-night-muted); margin-top: .5rem; }
+.notes { font-size: .8rem; color: var(--on-night-muted); margin-top: .35rem; }
+sup { font-size: .66em; margin-left: 1px; }
+.pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 1.6rem; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; font: 500 .92rem/1 var(--sans);
+  background: rgba(255,255,255,.08); color: var(--on-night); border: 1px solid rgba(255,255,255,.14); transition: background .15s, transform .15s; }
+.pill:hover { background: rgba(255,255,255,.16); text-decoration: none; transform: translateY(-1px); }
+.pill.primary { background: var(--teal); color: #042220; border-color: var(--teal); } .pill.primary:hover { background: #3ad8d0; }
+.pill svg { width: 15px; height: 15px; }
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; max-width: 1280px; margin: clamp(36px, 6vw, 56px) auto 0; padding-inline: var(--gutter); }
+@media (max-width: 760px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { position: relative; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 1 / 1; cursor: pointer; border: 1px solid rgba(255,255,255,.08);
+  transition: transform .25s ease, border-color .25s; padding: 0; color: inherit; text-align: left; }
+.tile:hover { transform: translateY(-3px); border-color: rgba(0,199,190,.6); }
+.tile video { width: 100%; height: 100%; object-fit: cover; }
+.tile .cap { position: absolute; inset: auto 0 0 0; padding: 26px 12px 10px; background: linear-gradient(transparent, rgba(0,0,0,.78));
+  font: 500 12.5px/1.3 var(--sans); color: #fff; display: flex; justify-content: space-between; gap: 8px; align-items: end; }
+.tile .cap b { font: 600 13px var(--sans); }
+.tile .cap span { font: 500 11px var(--mono-f); color: #ffd1cb; background: rgba(255,107,94,.22); padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
+.hero-caption { text-align: center; color: var(--on-night-muted); font-size: 1rem; margin: 22px auto 0; max-width: 640px; }
+
+/* TL;DR */
+.tldr-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+@media (max-width: 860px) { .tldr-grid { grid-template-columns: 1fr; } }
+.tldr p { font: 400 1.32rem/1.5 var(--serif); margin: 0; color: var(--ink); }
+.tag { display: inline-block; font: 600 10.5px/1 var(--mono-f); letter-spacing: .08em; background: var(--ink); color: #fff; padding: 5px 7px; border-radius: 4px; margin-right: 8px; vertical-align: 3px; }
+details.abs { margin-top: 22px; }
+details.abs summary { cursor: pointer; color: var(--teal-ink); font: 500 .95rem var(--sans); list-style: none; display: inline-flex; gap: 8px; align-items: center; }
+details.abs summary::-webkit-details-marker { display: none; }
+details.abs summary::before { content: "+"; font: 500 1.1rem/1 var(--mono-f); }
+details.abs[open] summary::before { content: "−"; }
+details.abs p { font: 400 1rem/1.65 var(--sans); color: var(--ink-2); margin: 14px 0 0; }
+.facts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.facts li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: .95rem; color: var(--ink-2); }
+.facts .k { font: 500 10.5px/1.5 var(--mono-f); letter-spacing: .08em; text-transform: uppercase; color: var(--sub); padding-top: 3px; }
+.facts b { color: var(--ink); font-weight: 600; }
+
+/* night stage for the live demo (the demo component was built on these dark tokens) */
+section.night { background: var(--night); color: var(--on-night);
+  --bg: #0d0f0e; --bg-soft: #16191a; --bg-card: #1b1f20; --border: #2a2f30; --text: #f4f6f5; --text-dim: #a4adab; --text-mute: #6f7876;
+  --accent: #00C7BE; --accent-dim: #0a8a84; --ok: #3fbf7f; --bad: #ff6b5e; --bad-soft: #3a1915; --lip: #f0b04a;
+  --surface: var(--bg-card); --rule: var(--border); --fg: var(--text); --fg2: var(--text-dim); --muted: var(--text-mute);
+  --font: var(--sans); --mono: var(--mono-f); color-scheme: dark; }
+section.night h2.big { color: var(--on-night); } section.night .lede { color: var(--on-night-muted); } section.night .kicker { color: var(--teal); }
+section.night .demo-foot { color: var(--muted); }
+section.night a { color: var(--teal); }
+.fine { font-size: .82rem; color: var(--sub); } section.night .fine { color: var(--text-mute); }
+
+/* viseme map */
+.vmap { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .vmap { grid-template-columns: 1fr; } }
+.seg2 { display: inline-flex; background: var(--mist); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 2px; margin-bottom: 14px; flex-wrap: wrap; }
+.seg2 button { border: 0; background: none; padding: 7px 16px; border-radius: 999px; color: var(--sub); cursor: pointer; font: 500 .9rem var(--sans); }
+.seg2 button.on { background: var(--ink); color: #fff; }
+.plot { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; touch-action: none; }
+.plot canvas { width: 100%; height: auto; aspect-ratio: 4 / 3; cursor: crosshair; }
+.ptip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; border-radius: 10px; padding: 9px 12px; font-size: .84rem; line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25); display: none; white-space: nowrap; z-index: 2; }
+.ptip .c { font: 600 .95rem var(--sans); display: flex; align-items: center; gap: 7px; }
+.ptip .c i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ptip .m { font: 12px var(--mono-f); color: #b9c4c3; margin-top: 3px; }
+.legend2 { display: grid; gap: 6px; }
+.chip { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; border: 1px solid var(--line); background: #fff;
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: border-color .15s, opacity .15s; color: var(--ink); }
+.chip i { width: 12px; height: 12px; border-radius: 50%; }
+.chip b { font: 600 .92rem var(--sans); display: block; } .chip small { font: 11.5px var(--mono-f); color: var(--sub); }
+.chip:hover, .chip.on { border-color: var(--ink); } .legend2.iso .chip:not(.on) { opacity: .45; }
+.vnote { font-size: .95rem; color: var(--ink-2); margin: 0 0 12px; }
+
+/* how it works */
+.fig { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(12px, 2vw, 24px); }
+.fig img { margin: 0 auto; width: 100%; max-width: 1040px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(20px, 3vw, 36px); margin-top: 36px; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+.three h3 { font: 500 1.35rem/1.2 var(--serif); margin: 8px 0 8px; } .three p { margin: 0; font-size: .97rem; color: var(--ink-2); }
+.mfa { margin-top: 30px; padding: 16px 20px; border-left: 3px solid var(--teal); background: #fff; border-radius: 0 12px 12px 0; color: var(--ink-2); font-size: .97rem; }
+
+/* comparisons */
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(24px, 4vw, 56px); }
+@media (max-width: 860px) { .cmp { grid-template-columns: 1fr; } }
+.cmp h3 { font: 500 1.4rem/1.2 var(--serif); margin: 0 0 6px; } .cmp p { margin: 0 0 18px; color: var(--sub); font-size: .95rem; }
+.bars { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) 56px; gap: 12px; align-items: center; font-size: .92rem; }
+.bar-row .nm { color: var(--ink-2); } .bar-row.us .nm { color: var(--ink); font-weight: 600; }
+.bar-row .tr { display: block; height: 14px; background: var(--mist); border-radius: 999px; overflow: hidden; }
+.bar-row .fl { display: block; height: 100%; width: 0; border-radius: 999px; background: #b8c3c2; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+.bar-row.us .fl { background: linear-gradient(90deg, #00a59e, var(--teal)); }
+.bar-row .v { font: 600 .92rem var(--mono-f); text-align: right; }
+.bars .axisnote { font: 11px var(--mono-f); color: var(--sub); margin-top: 10px; }
+
+/* citation + footer */
+pre.bib { position: relative; background: var(--night); color: #d6e1df; border-radius: 14px; padding: 22px 24px; overflow-x: auto; font: 13px/1.6 var(--mono-f); margin: 0; }
+.copy { position: absolute; top: 12px; right: 12px; font: 600 12px var(--sans); padding: 5px 11px; border-radius: 8px; border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06); color: #d6e1df; cursor: pointer; }
+footer { background: var(--night); color: var(--on-night-muted); padding: 28px 0; font-size: .85rem; }
+footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; } footer img { height: 18px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .tile, .pill, .bar-row .fl, .topnav { transition: none; } }
+
+/*__DEMO_CSS__*/
+</style>
+</head>
+<body>
+
+<nav class="topnav" id="topnav" aria-label="Sections">
+  <div class="wrap topnav-in">
+    <a class="brand" href="#top"><img src="images/cantina-primary-logo-white.png" alt="Cantina"><span>PVSync</span></a>
+    <div class="topnav-links"><a href="#demo">Demo</a><a href="#map">Viseme map</a><a href="#how">How it works</a><a href="#results">Results</a><a href="#cite">BibTeX</a></div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-bar"><a href="https://cantina.ai"><img src="images/cantina-primary-logo-white.png" alt="Cantina"></a>
+    <a class="small" href="https://arxiv.org/abs/2610.09223">arXiv 2610.09223</a></div>
+  <div class="wrap hero-text">
+    <h1>PVSync</h1>
+    <p class="tagline">A unified lip-sync expert for <em>timing</em> and <em>articulation</em></p>
+    <ul class="authors"><li>Kevin Stephen<sup>1,2,★,†</sup></li><li>Varun Menon<sup>2,★</sup></li><li>Timo Mertens<sup>2</sup></li><li>Nikita Drobyshev<sup>2</sup></li></ul>
+    <ul class="affils"><li><sup>1</sup>University of Southern California</li><li><sup>2</sup>Cantina Inc.</li></ul>
+    <div class="notes">★ Equal contribution · † Work done during an internship at Cantina Inc.</div>
+    <div class="pills">
+      <a class="pill primary" href="#demo"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>Try the demo</a>
+      <a class="pill" href="https://arxiv.org/abs/2610.09223" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Paper</a>
+      <a class="pill" href="#cite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>BibTeX</a>
+    </div>
+  </div>
+  <div class="strip" id="strip"></div>
+  <p class="hero-caption">PVSync finds how far the audio is off, corrects it, then checks every sound against the shape of the lips. Click a clip to open it in the demo.</p>
+</header>
+
+<section class="band">
+  <div class="wrap tldr-grid">
+    <div class="tldr">
+      <p><span class="tag">TL;DR</span>Lip movements can match the timing of speech without matching the spoken sounds. PVSync is a unified model for
+        audio–visual offset estimation and phoneme-level articulation scoring, trained with viseme labels derived automatically from forced-aligned
+        transcripts. On videos from 13 talking-head video generation models it matches human rankings of lip-sync quality at Spearman 0.83, against 0.34 for LSE-C.</p>
+      <details class="abs"><summary>Read the abstract</summary>
+        <p>__ABSTRACT__</p>
+      </details>
+    </div>
+    <ul class="facts">
+      <li><span class="k">Input</span><span>A talking-head video with its audio</span></li>
+      <li><span class="k">Output</span><span>The audio offset, a sync score for every 480 ms window, and a score for <b>every phone</b></span></li>
+      <li><span class="k">Agrees with people</span><span><b>Spearman 0.83</b> with 180 raters' ranking of 13 generators (LSE-C: 0.34)</span></li>
+      <li><span class="k">Finds the offset</span><span>Within one frame on <b>92.7%</b> of held-out clips (MTD-VocaLiST 87.4%, SyncNet 80.0%)</span></li>
+      <li><span class="k">Reads lip shapes</span><span><b>ROC AUC 0.91</b> at telling a mouth that fits the sound from one that doesn't</span></li>
+      <li><span class="k">Labels</span><span>No manual annotation: forced-aligned transcripts</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band night" id="demo">
+  <div class="wrap">
+    <div class="kicker">Live demo</div>
+    <h2 class="big">Watch it check every sound</h2>
+    <p class="lede">Pick a clip and press play. The offset is found and corrected first; then each sound gets a score, and sounds below 0.28 are flagged.
+      Click a flagged sound or a word to replay it at quarter speed with the lips zoomed in.</p>
+    __DEMO_HTML__
+    <p class="fine" style="margin-top:14px">These clips and their scores are example outputs of the model, not results reported in the paper.</p>
+  </div>
+</section>
+
+<section class="band" id="map">
+  <div class="wrap">
+    <div class="kicker">Inside the model</div>
+    <h2 class="big">Sounds and lip shapes land in the same places</h2>
+    <p class="lede">Every dot is one phone from held-out speech, embedded by PVSync. Colours are the paper's eight viseme classes: groups of sounds
+      that look the same on the lips. Hover a dot to see its class; hover a class to light it up.</p>
+    <div class="vmap">
+      <div>
+        <div class="seg2" role="group" aria-label="Embedding to show">
+          <button type="button" data-v="audio" class="on">Audio</button><button type="button" data-v="video">Video (lips)</button><button type="button" data-v="joint">Both together</button>
+        </div>
+        <p class="vnote" id="vnote"></p>
+        <div class="plot" id="plot"><canvas id="cv" width="960" height="720" aria-label="t-SNE map of phone embeddings coloured by viseme class"></canvas><div class="ptip" id="ptip"></div></div>
+        <p class="fine" style="margin-top:10px">t-SNE of the released model's span embeddings for 3,000 phones (at most 400 per class) from held-out clips. A visualisation of the model, not a figure from the paper.</p>
+      </div>
+      <div class="legend2" id="legend2"></div>
+    </div>
+  </div>
+</section>
+
+<section class="band mist" id="how">
+  <div class="wrap">
+    <div class="kicker">Method</div>
+    <h2 class="big">How PVSync works</h2>
+    <p class="lede">A clip is scored in 12-frame (480 ms) windows. AV-HuBERT reads the mouth, wav2vec2 reads the audio, and two small heads project both
+      into one shared space, where the score is their cosine similarity.</p>
+    <div class="fig"><img src="static/paper/fig2.png" alt="Training paths: a window branch with full-window means and window InfoNCE, and a phone branch with phone-masked means and cross-modal viseme InfoNCE."></div>
+    <div class="three">
+      <div><div class="kicker">Stage 1</div><h3>Learn timing</h3>
+        <p>Both towers train contrastively on 12-frame windows: each video window's positive is its own audio, and its negatives are the audio of the
+          other clips in the batch. This stage alone already recovers the offset more accurately than every baseline.</p></div>
+      <div><div class="kicker">Stage 2</div><h3>Learn lip shapes</h3>
+        <p>Every phone's span is pooled in both towers, and a video span is pulled toward audio spans of the same viseme class from other clips. Spans from
+          the same clip are excluded, so nothing but the viseme can satisfy the loss.</p></div>
+      <div><div class="kicker">Stage 3</div><h3>Recover the timing</h3>
+        <p>Viseme training gives up a little timing. Freezing both encoders, which keeps the viseme clustering, and fine-tuning only the two projection
+          heads for sync brings offset accuracy to 0.927, above stage 1.</p></div>
+    </div>
+    <div class="mfa"><b>Where the phone timings come from.</b> Transcripts are force-aligned to the audio with the
+      <a href="https://montreal-forced-aligner.readthedocs.io/" target="_blank" rel="noopener">Montreal Forced Aligner (MFA)</a>, which gives every phone a
+      start and end time. A phone's interval selects the tokens it covers in both towers; the same spans give each phone its score at inference.
+      No manual labels are involved.</div>
+  </div>
+</section>
+
+<section class="band" id="results">
+  <div class="wrap">
+    <div class="kicker">Results</div>
+    <h2 class="big">How it compares</h2>
+    <div class="cmp">
+      <div>
+        <h3>Agreement with human judgment</h3>
+        <p>180 blind raters scored 324 clips from 13 talking-head video generation models. Spearman correlation between each metric's ranking of the
+          models and the raters' ranking.</p>
+        <div class="bars" data-max="1">
+          <div class="bar-row us" data-v="0.83"><span class="nm">PVSync</span><span class="tr"><span class="fl"></span></span><span class="v">0.83</span></div>
+          <div class="bar-row" data-v="0.34"><span class="nm">LSE-C</span><span class="tr"><span class="fl"></span></span><span class="v">0.34</span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Finding the offset</h3>
+        <p>Share of 3,698 held-out clips whose offset is recovered within one frame, by how many frames of context the metric sees.</p>
+        <div class="seg2" role="group" aria-label="Context window"><button type="button" class="on" data-k="12">12 frames</button><button type="button" data-k="16">16 frames</button><button type="button" data-k="25">25 frames</button></div>
+        <div class="bars" id="offbars" data-max="1"></div>
+        <div class="bars"><span class="axisnote">StableSyncNet reads 16 frames, so it has no 12-frame score.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band mist" id="cite">
+  <div class="wrap narrow">
+    <div class="kicker">Citation</div>
+    <h2 class="big">BibTeX</h2>
+    <pre class="bib"><button type="button" class="copy" id="copyBib">Copy</button>@article{stephen2026pvsync,
+  title   = {PVSync: A Unified Lip-Sync Expert for Timing and Articulation},
+  author  = {Stephen, Kevin and Menon, Varun and Mertens, Timo and Drobyshev, Nikita},
+  journal = {arXiv preprint arXiv:2610.09223},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2610.09223}
+}</pre>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>University of Southern California · Cantina Inc. · Code and benchmark data will be released upon acceptance.</span>
+  <img src="images/cantina-primary-logo-white.png" alt="Cantina"></div></footer>
+
+<script>
+__DEMO_JS__
+</script>
+<script>
+// ---- hero strip: the four demo clips playing muted; a click opens that clip in the demo
+(function () {
+  const S = document.getElementById("strip");
+  ORDER.forEach((o, i) => {
+    const d = EX[o.key], j = d.phones.filter(p => p.e && p.n), f = j.filter(p => p.s < d.flag);
+    const b = document.createElement("button"); b.type = "button"; b.className = "tile";
+    b.setAttribute("aria-label", `Open ${o.label} in the demo`);
+    b.innerHTML = `<video src="${o.file.replace(/\.mp4$/, "_shift.mp4")}" muted loop playsinline autoplay preload="metadata"></video>` +
+      `<div class="cap"><b>${o.label}</b><span>${f.length} of ${j.length} flagged</span></div>`;
+    b.onclick = () => { vid.pause(); load(i); document.getElementById("demo").scrollIntoView({ behavior: "smooth" }); };
+    S.appendChild(b);
+  });
+  // top bar appears once the hero is gone
+  const nav = document.getElementById("topnav"), hero = document.getElementById("top");
+  new IntersectionObserver(([e]) => nav.classList.toggle("show", !e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" }).observe(hero);
+})();
+
+// ---- results bars
+(function () {
+  const OFF = { 12: [["PVSync", .927, 1], ["MTD-VocaLiST", .874], ["SyncNet", .800]],
+                16: [["PVSync", .951, 1], ["MTD-VocaLiST", .925], ["StableSyncNet", .906], ["SyncNet", .883]],
+                25: [["PVSync", .981, 1], ["MTD-VocaLiST", .973], ["StableSyncNet", .958], ["SyncNet", .960]] };
+  const OB = document.getElementById("offbars");
+  const fill = root => root.querySelectorAll(".bar-row").forEach(r => { const f = r.querySelector(".fl"); void f.offsetWidth; f.style.width = (100 * +r.dataset.v) + "%"; });
+  let seen = false;
+  function draw(k) {
+    OB.innerHTML = OFF[k].map(([n, v, us]) => `<div class="bar-row${us ? " us" : ""}" data-v="${v}"><span class="nm">${n}</span><span class="tr"><span class="fl"></span></span><span class="v">${(100 * v).toFixed(1)}%</span></div>`).join("");
+    if (seen) fill(OB);
+  }
+  document.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
+    document.querySelectorAll("[data-k]").forEach(x => x.classList.toggle("on", x === b)); draw(b.dataset.k);
+  });
+  draw(12);
+  const sec = document.getElementById("results"), go = () => { seen = true; sec.querySelectorAll(".bars").forEach(fill); };
+  if ("IntersectionObserver" in window) new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { go(); o.disconnect(); } }, { threshold: .15 }).observe(sec);
+  else go();
+})();
+
+// ---- viseme map
+(function () {
+  const CL = [["bilabial", "Bilabial", "lips pressed shut", "#d1495b"], ["labiodental", "Labiodental", "top teeth on lower lip", "#e9a23b"],
+    ["rounded", "Rounded", "lips rounded, pushed forward", "#2e86ab"], ["spread", "Spread", "lips spread wide", "#8e5bd8"],
+    ["open", "Open", "jaw open", "#f07f3c"], ["rhotic", "Rhotic", "R sounds", "#13a89e"],
+    ["dental_alv", "Dental / alveolar", "tongue behind the teeth", "#6c9a5b"], ["velar", "Velar", "back of the tongue", "#8a94a0"]];
+  const COL = Object.fromEntries(CL.map(c => [c[0], c[3]])), NAME = Object.fromEntries(CL.map(c => [c[0], c[1]]));
+  const NOTE = { audio: "Audio embeddings: the eight classes separate cleanly, even though different speakers and recordings are mixed in every cluster.",
+    video: "Video embeddings: lip-explicit classes (bilabial, labiodental) form their own islands; sounds made inside the mouth overlap, as they do to the eye.",
+    joint: "Audio (filled) and video (rings) in one map. Hover a dot to draw the line to the same phone's other half." };
+  const cv = document.getElementById("cv"), g = cv.getContext("2d"), tip = document.getElementById("ptip"), L = document.getElementById("legend2");
+  let T, view = "audio", P = [], from = null, t0 = 0, hov = -1, hiCls = null, iso = null;
+  const DPR = Math.min(2, window.devicePixelRatio || 1);
+  function size() { const w = cv.clientWidth; cv.width = w * DPR; cv.height = w * .75 * DPR; draw(); }
+  function target(v) {
+    const n = T.n, out = [];
+    if (v === "joint") { for (let i = 0; i < n; i++) out.push([...T.joint.a[i], i, "a"]); for (let i = 0; i < n; i++) out.push([...T.joint.v[i], i, "v"]); }
+    else for (let i = 0; i < n; i++) out.push([...T[v][i], i, v === "audio" ? "a" : "v"]);
+    return out;
+  }
+  function setView(v) {
+    view = v; document.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+    document.getElementById("vnote").textContent = NOTE[v];
+    const nxt = target(v);
+    // tween from the current positions; points match by (phone index, modality), new ones grow from their partner
+    const cur = new Map(P.map(p => [p[2] + p[3], p]));
+    from = nxt.map(p => { const c = cur.get(p[2] + p[3]) || cur.get(p[2] + (p[3] === "a" ? "v" : "a")); return c ? [c[0], c[1]] : [p[0], p[1]]; });
+    P = nxt; t0 = performance.now(); hov = -1; tip.style.display = "none"; anim();
+  }
+  const ease = x => 1 - Math.pow(1 - x, 3);
+  function pos(i, k) { const p = P[i]; if (!from || k >= 1) return p; const f = from[i]; return [f[0] + (p[0] - f[0]) * k, f[1] + (p[1] - f[1]) * k]; }
+  let K = 1;
+  function anim() { K = ease(Math.min(1, (performance.now() - t0) / 750)); draw(); if (K < 1) requestAnimationFrame(anim); }
+  const pad = 26;
+  const X = x => (pad + x * (cv.width / DPR - 2 * pad)) * DPR, Y = y => (pad + (1 - y) * (cv.height / DPR - 2 * pad)) * DPR;
+  function draw() {
+    if (!T) return;
+    const W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+    const act = hiCls || iso, r = 2.7 * DPR;
+    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < P.length; i++) {
+      const c = T.cls[P[i][2]], on = !act || c === act;
+      if ((pass === 0) === on && act) continue; if (pass === 1 && !act) continue;
+      const [x, y] = pos(i, K);
+      g.globalAlpha = on ? .82 : .08;
+      g.beginPath(); g.arc(X(x), Y(y), r, 0, 6.2832);
+      if (P[i][3] === "v" && view === "joint") { g.strokeStyle = COL[c]; g.lineWidth = 1.3 * DPR; g.stroke(); } else { g.fillStyle = COL[c]; g.fill(); }
+    }
+    g.globalAlpha = 1;
+    if (hov >= 0) {
+      const [x, y] = pos(hov, K), p = P[hov];
+      if (view === "joint") {
+        const j = P.findIndex(q => q[2] === p[2] && q[3] !== p[3]);
+        if (j >= 0) { const [x2, y2] = pos(j, K); g.strokeStyle = "#0f1515"; g.lineWidth = 1.4 * DPR; g.setLineDash([4 * DPR, 3 * DPR]);
+          g.beginPath(); g.moveTo(X(x), Y(y)); g.lineTo(X(x2), Y(y2)); g.stroke(); g.setLineDash([]);
+          g.beginPath(); g.arc(X(x2), Y(y2), 6 * DPR, 0, 6.2832); g.lineWidth = 2 * DPR; g.stroke(); }
+      }
+      g.beginPath(); g.arc(X(x), Y(y), 6 * DPR, 0, 6.2832); g.strokeStyle = "#0f1515"; g.lineWidth = 2 * DPR; g.stroke();
+    }
+  }
+  function pick(ev) {
+    const b = cv.getBoundingClientRect(), mx = (ev.clientX - b.left) * DPR, my = (ev.clientY - b.top) * DPR;
+    let best = -1, bd = (14 * DPR) ** 2, act = hiCls || iso;
+    for (let i = 0; i < P.length; i++) { if (act && T.cls[P[i][2]] !== act) continue; const [x, y] = pos(i, 1), dx = X(x) - mx, dy = Y(y) - my, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } }
+    hov = best; draw();
+    if (best < 0) { tip.style.display = "none"; return; }
+    const p = P[best], c = T.cls[p[2]], meta = CL.find(z => z[0] === c);
+    tip.innerHTML = `<div class="c"><i style="background:${COL[c]}"></i>${NAME[c]}</div><div class="m">${meta[2]}</div>` +
+      `<div class="m">phone ${T.ph[p[2]]} · ${p[3] === "a" ? "audio" : "video (lips)"}</div>`;
+    tip.style.display = "block";
+    const tx = ev.clientX - b.left + 14, ty = ev.clientY - b.top + 14;
+    tip.style.left = Math.min(tx, b.width - tip.offsetWidth - 8) + "px"; tip.style.top = Math.min(ty, b.height - tip.offsetHeight - 8) + "px";
+  }
+  cv.addEventListener("pointermove", pick); cv.addEventListener("pointerleave", () => { hov = -1; tip.style.display = "none"; draw(); });
+  document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => setView(b.dataset.v));
+  fetch("data/tsne.json").then(r => r.json()).then(d => {
+    T = d;
+    const phs = c => [...new Set(T.ph.filter((p, i) => T.cls[i] === c))].sort().join(" ");
+    CL.forEach(([k, n, desc, col]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip";
+      b.innerHTML = `<i style="background:${col}"></i><span><b>${n}</b><small>${phs(k)}</small></span>`;
+      b.onmouseenter = b.onfocus = () => { hiCls = k; draw(); }; b.onmouseleave = b.onblur = () => { hiCls = null; draw(); };
+      b.onclick = () => { iso = iso === k ? null : k; L.classList.toggle("iso", !!iso); L.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b && !!iso)); draw(); };
+      L.appendChild(b);
+    });
+    P = target("audio"); from = null; setView("audio"); size();
+  });
+  window.addEventListener("resize", size);
+})();
+
+document.getElementById("copyBib").addEventListener("click", function () {
+  const t = this.parentElement.innerText.replace(/^Copy\s*/, "");
+  navigator.clipboard.writeText(t).then(() => this.textContent = "Copied", () => {});
+});
+</script>
+</body>
+</html>

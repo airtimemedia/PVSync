@@ -1,0 +1,46 @@
+<div class="demo">
+      <div class="pick" id="pick" role="group" aria-label="Choose a clip"></div>
+      <div class="stage">
+        <div>
+          <div class="player">
+            <video id="vid" playsinline preload="auto" controls></video>
+            <div class="zoom" id="zoom"><canvas id="zc" width="320" height="160"></canvas><span>mouth</span></div>
+          </div>
+          <div class="controls">
+            <span>Audio timing</span>
+            <span class="seg"><button type="button" id="m-ship" title="The file as it was generated, before PVSync shifts the audio">original (before shift)</button><button type="button" id="m-fix" class="on" title="Audio shifted by the offset PVSync found">after shift</button></span>
+            <span class="seg"><button type="button" id="s-1" class="on">1×</button><button type="button" id="s-05">½×</button><button type="button" id="s-025">¼×</button></span>
+          </div>
+        </div>
+        <div class="right">
+          <div class="panel now" id="now">
+            <div class="label">The sound being made right now</div>
+            <div class="big"><span class="ph-big" id="nowP">—</span><span class="word" id="nowW">press play</span></div>
+            <div class="verdict" id="nowV">&nbsp;</div>
+            <div class="should" id="nowS"></div>
+          </div>
+          <div class="facts">
+            <div class="panel fact"><div class="label">Audio offset</div><div class="v" id="fOff"></div><div class="k">audio shifted by this before judging</div></div>
+            <div class="panel fact"><div class="label">Sync score</div><div class="v" id="fScore"></div><div class="k">before shift → after shift</div></div>
+            <div class="panel fact"><div class="label">Sounds flagged</div><div class="v" id="fFlag"></div><div class="k" id="fFlagK"></div></div>
+          </div>
+          <div class="panel">
+            <div class="label" id="flagTitle">Sounds PVSync flagged</div>
+            <div class="flags" id="flags"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel strip-panel">
+        <div class="label">Every sound in the clip, scored</div>
+        <div class="track" id="track"><div class="thr" id="thrLine"><span></span></div><div class="tip" id="tip"></div></div>
+        <div class="axis" id="axis"></div>
+        <div class="words" id="words"></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>sound scored above the threshold</span><span><i style="background:var(--bad)"></i>flagged: lips don't match the sound</span>
+          <span><i style="background:var(--rule)"></i>not judged (tongue/throat sounds)</span><span>click a bar or a word to replay it slowed down</span></div>
+      </div>
+      <div class="panel offset">
+        <div><div class="label">Finding the offset</div><p id="offText"></p></div>
+        <svg class="curve" id="curve" viewBox="0 0 560 170" role="img" aria-label="Sync score for each audio shift from 8 frames early to 8 frames late"></svg>
+      </div>
+      <p class="demo-foot">Flag threshold <span id="thr"></span>. Phoneme timings come from forced alignment of an automatic transcript.</p>
+    </div>
