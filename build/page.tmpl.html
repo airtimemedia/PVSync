@@ -132,6 +132,10 @@ section.night a { color: var(--teal); }
 .chip:hover, .chip.on { border-color: var(--ink); } .legend2.iso .chip:not(.on) { opacity: .45; }
 .vnote { font-size: .95rem; color: var(--ink-2); margin: 0 0 12px; }
 
+.why { margin-top: 22px; padding: 18px 22px; background: var(--mist); border-radius: 14px; font-size: .96rem; color: var(--ink-2); }
+.why h3 { font: 500 1.25rem/1.2 var(--serif); margin: 0 0 8px; color: var(--ink); } .why p { margin: 0 0 8px; } .why ul { margin: 0 0 8px; padding-left: 0; list-style: none; }
+.why li { margin: 6px 0; } .why b { color: var(--ink); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 5px; vertical-align: 0; }
 /* how it works */
 .fig { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: clamp(12px, 2vw, 24px); }
 .fig img { margin: 0 auto; width: 100%; max-width: 1040px; }
@@ -237,6 +241,20 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
         </div>
         <p class="vnote" id="vnote"></p>
         <div class="plot" id="plot"><canvas id="cv" width="960" height="720" aria-label="t-SNE map of phone embeddings coloured by viseme class"></canvas><div class="ptip" id="ptip"></div></div>
+        <div class="why">
+          <h3>Why some classes mix</h3>
+          <p>The lip-explicit classes, <span class="dot" style="--c:#d1495b"></span>bilabial (/p b m/) and <span class="dot" style="--c:#e9a23b"></span>labiodental
+            (/f v/), are recognised almost perfectly. The errors fall between classes that look alike on the lips:</p>
+          <ul>
+            <li><span class="dot" style="--c:#8a94a0"></span><b>Velar scatters over its neighbours.</b> /k/ and /g/ have no lip gesture of their own, so the mouth during them
+              shows the neighbouring vowel. It is the weakest class.</li>
+            <li><span class="dot" style="--c:#f07f3c"></span><b>Open</b> and <span class="dot" style="--c:#8e5bd8"></span><b>spread</b> vowels are exchanged: a vowel such as /æ/
+              (“cat”) opens the mouth only slightly more than a spread vowel such as /ɛ/ (“bed”).</li>
+            <li><span class="dot" style="--c:#13a89e"></span><b>Rhotic</b> and <span class="dot" style="--c:#2e86ab"></span><b>rounded</b> are exchanged, because /r/ is produced with
+              rounded lips.</li>
+          </ul>
+          <p>In the paper, 70% of the final model's errors fall on one of these look-alike classes.</p>
+        </div>
         <p class="fine" style="margin-top:10px">t-SNE of the released model's span embeddings for 3,000 phones (at most 400 per class) from held-out clips. A visualisation of the model, not a figure from the paper.</p>
       </div>
       <div class="legend2" id="legend2"></div>
@@ -361,7 +379,7 @@ __DEMO_JS__
     ["dental_alv", "Dental / alveolar", "tongue behind the teeth", "#6c9a5b"], ["velar", "Velar", "back of the tongue", "#8a94a0"]];
   const COL = Object.fromEntries(CL.map(c => [c[0], c[3]])), NAME = Object.fromEntries(CL.map(c => [c[0], c[1]]));
   const NOTE = { audio: "Audio embeddings: the eight classes separate cleanly, even though different speakers and recordings are mixed in every cluster.",
-    video: "Video embeddings: lip-explicit classes (bilabial, labiodental) form their own islands; sounds made inside the mouth overlap, as they do to the eye.",
+    video: "Video embeddings: bilabial and labiodental form their own islands; classes that look alike on the lips overlap (see below).",
     joint: "Audio (filled) and video (rings) in one map. Hover a dot to draw the line to the same phone's other half." };
   const cv = document.getElementById("cv"), g = cv.getContext("2d"), tip = document.getElementById("ptip"), L = document.getElementById("legend2");
   let T, view = "audio", P = [], from = null, t0 = 0, hov = -1, hiCls = null, iso = null;
