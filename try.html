@@ -196,7 +196,7 @@ section + section { margin-top: 18px; }
 <script>
 // Backend location: the deployed Worker, or ?api=http://localhost:8788 for local testing.
 const DEFAULT_API = "https://pvsync-demo-backend.cantina.workers.dev";
-const TURNSTILE_SITEKEY = "";   // set once the Turnstile widget exists
+const TURNSTILE_SITEKEY = "0x4AAAAAAFtE5x0X7IxP27wj";
 const MAX_S = 30, MAX_MB = 50;
 const API = (new URLSearchParams(location.search).get("api") || DEFAULT_API).replace(/\/$/, "");
 const $ = id => document.getElementById(id);
@@ -227,6 +227,8 @@ if (TURNSTILE_SITEKEY) {
   window.onTurnstile = () => turnstile.render("#captcha", { sitekey: TURNSTILE_SITEKEY, callback: t => { CAPTCHA = t; ready(); }, "expired-callback": () => { CAPTCHA = ""; ready(); } });
   const s = document.createElement("script"); s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstile"; s.async = true; document.head.appendChild(s);
 }
+// A token is good for one upload: get a fresh one as soon as it has been sent.
+const freshCaptcha = () => { if (window.turnstile && TURNSTILE_SITEKEY) { CAPTCHA = ""; turnstile.reset(); } };
 const ready = () => { $("go").disabled = !(FILE && $("agree").checked && (CAPTCHA || !TURNSTILE_SITEKEY)); };
 $("agree").onchange = ready;
 
@@ -279,6 +281,7 @@ function upload() {
     fail(msg, ["captcha", "server"].includes(b.code) || x.status >= 500);
   };
   x.send(FILE);
+  freshCaptcha();
 }
 $("go").onclick = () => { if (!$("go").disabled) upload(); };
 
@@ -319,7 +322,7 @@ function fail(msg, canRetry) {
   for (const s of ["sUp", "sLine", "sRun"]) if ($(s).classList.contains("now")) setStep(s, "");
   err("runErr", msg); $("retry").hidden = !canRetry;
 }
-$("retry").onclick = () => { if (window.turnstile && TURNSTILE_SITEKEY) { CAPTCHA = ""; turnstile.reset(); } show("pick"); ready(); };
+$("retry").onclick = () => { show("pick"); ready(); };
 
 // ---- optional "about you": once per visitor, only after a successful upload
 function maybeAsk() { if (!store.get("pvs_about")) $("about").hidden = false; }
