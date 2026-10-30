@@ -100,6 +100,7 @@ details.abs p { font: 400 1rem/1.65 var(--sans); color: var(--ink-2); margin: 14
 .facts .k { font: 500 10.5px/1.5 var(--mono-f); letter-spacing: .08em; text-transform: uppercase; color: var(--sub); padding-top: 3px; }
 .facts b { color: var(--ink); font-weight: 600; }
 
+.tryown { margin: 18px 0 0; font-size: 1.02rem; } section.night .tryown a { color: var(--teal); font-weight: 500; }
 /* night stage for the live demo (the demo component was built on these dark tokens) */
 section.night { background: var(--night); color: var(--on-night);
   --bg: #0d0f0e; --bg-soft: #16191a; --bg-card: #1b1f20; --border: #2a2f30; --text: #f4f6f5; --text-dim: #a4adab; --text-mute: #6f7876;
@@ -178,7 +179,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   @media (max-width: 820px) { .demo .stage { grid-template-columns: 1fr; } }
   .demo .player { position: relative; border-radius: 6px; overflow: hidden; background: #000; border: 1px solid var(--rule); }
   .demo .player video { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: contain; }
-  .demo .zoom { position: absolute; right: 10px; bottom: 54px; width: 46%; border: 2px solid #fff; border-radius: 5px; background: #000; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+  .demo .zoom { position: absolute; right: 10px; top: 10px; width: 40%; border: 2px solid #fff; border-radius: 5px; background: #000; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
   .demo .zoom.bad { border-color: var(--bad); }
   .demo .zoom canvas { display: block; width: 100%; aspect-ratio: 2 / 1; }
   .demo .zoom span { position: absolute; left: 0; top: 0; font: 500 10px/1.4 var(--mono); color: #fff; background: rgba(0,0,0,.55); padding: 2px 6px; border-bottom-right-radius: 4px; }
@@ -270,6 +271,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     <div class="notes">★ Equal contribution · † Work done during an internship at Cantina Inc.</div>
     <div class="pills">
       <a class="pill primary" href="#demo"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>Try the demo</a>
+      <a class="pill" href="try.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Try your own video</a>
       <a class="pill" href="https://arxiv.org/abs/2610.09223" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Paper</a>
       <a class="pill" href="#cite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>BibTeX</a>
     </div>
@@ -351,6 +353,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
       </div>
       <p class="demo-foot">Flag threshold <span id="thr"></span>. Phoneme timings come from forced alignment of an automatic transcript.</p>
     </div>
+    <p class="tryown"><a href="try.html">Want to check your own clip? Upload a video →</a></p>
     <p class="fine" style="margin-top:14px">These clips and their scores are example outputs of the model, not results reported in the paper.</p>
   </div>
 </section>
