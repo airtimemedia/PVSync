@@ -194,7 +194,7 @@ section + section { margin-top: 18px; }
 
 <script>
 // Backend location: the deployed Worker, or ?api=http://localhost:8788 for local testing.
-const DEFAULT_API = "";   // set to the workers.dev URL once deployed
+const DEFAULT_API = "https://pvsync-demo-backend.cantina.workers.dev";
 const TURNSTILE_SITEKEY = "";   // set once the Turnstile widget exists
 const MAX_S = 30, MAX_MB = 50;
 const API = (new URLSearchParams(location.search).get("api") || DEFAULT_API).replace(/\/$/, "");
