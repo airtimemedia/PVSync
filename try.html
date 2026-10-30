@@ -42,9 +42,10 @@ main { padding-block: 28px 64px; }
 .banner.err { background: var(--fail-bg); color: var(--ink); }
 
 /* picker */
-.drop { border: 2px dashed var(--line); border-radius: 16px; padding: 34px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop { display: block; border: 2px dashed var(--line); border-radius: 16px; padding: 34px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
 .drop:hover, .drop.over { border-color: var(--teal); background: #f2fbfa; }
 .drop b { display: block; font: 500 1.3rem var(--serif); margin-bottom: 4px; }
+.drop .note { display: block; }
 .picked { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 720px) { .picked, .result-top { grid-template-columns: 1fr !important; } }
 video { width: 100%; border-radius: 12px; background: #000; display: block; }
