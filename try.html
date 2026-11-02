@@ -120,7 +120,7 @@ section + section { margin-top: 18px; }
   <section class="card" id="pick">
     <label class="drop" id="drop" for="file">
       <b>Choose a video</b>
-      <span class="note">MP4 or MOV · one person speaking · up to <span id="maxS">30</span> seconds and <span id="maxMB">50</span> MB</span>
+      <span class="note">MP4 or MOV · one person speaking · up to <span id="maxS">30</span> seconds and <span id="maxMB">95</span> MB</span>
       <input type="file" id="file" accept="video/*" hidden>
     </label>
     <div class="banner err" id="pickErr" hidden style="margin-top:14px"></div>
@@ -197,7 +197,7 @@ section + section { margin-top: 18px; }
 // Backend location: the deployed Worker, or ?api=http://localhost:8788 for local testing.
 const DEFAULT_API = "https://pvsync-demo-backend.cantina.workers.dev";
 const TURNSTILE_SITEKEY = "0x4AAAAAAFtE5x0X7IxP27wj";
-const MAX_S = 30, MAX_MB = 50;
+const MAX_S = 30, MAX_MB = 95;
 const API = (new URLSearchParams(location.search).get("api") || DEFAULT_API).replace(/\/$/, "");
 const $ = id => document.getElementById(id);
 const CLASS_NAMES = { lip_closures: "Lips pressing shut (B P M)", lip_to_teeth: "Teeth on lower lip (F V)", rounded: "Rounded lips (W OO OH)",
