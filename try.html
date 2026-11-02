@@ -46,6 +46,12 @@ main { padding-block: 28px 64px; }
 .drop:hover, .drop.over { border-color: var(--teal); background: #f2fbfa; }
 .drop b { display: block; font: 500 1.3rem var(--serif); margin-bottom: 4px; }
 .drop .note { display: block; }
+.samples .sgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.samples button { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 6px; cursor: pointer; text-align: left; font: inherit; }
+.samples button:hover { border-color: var(--teal); background: #f2fbfa; }
+.samples video { border-radius: 8px; aspect-ratio: 1; object-fit: cover; pointer-events: none; }
+.samples span { display: block; font-size: 13px; margin-top: 4px; }
+@media (max-width: 560px) { .samples .sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .picked { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 720px) { .picked, .result-top { grid-template-columns: 1fr !important; } }
 video { width: 100%; border-radius: 12px; background: #000; display: block; }
@@ -124,6 +130,10 @@ section + section { margin-top: 18px; }
       <input type="file" id="file" accept="video/*" hidden>
     </label>
     <div class="banner err" id="pickErr" hidden style="margin-top:14px"></div>
+    <div class="samples" id="samples" style="margin-top:18px">
+      <div class="label">Or see the result for one of our clips</div>
+      <div class="sgrid" id="sgrid"></div>
+    </div>
     <div class="picked" id="picked" hidden style="margin-top:16px">
       <video id="preview" controls playsinline></video>
       <div>
@@ -213,7 +223,7 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 const PER_TAB = new URLSearchParams(location.search).has("tab");
 let VISITOR = PER_TAB ? null : store.get("pvs_visitor");
 if (!VISITOR) { VISITOR = "v-" + crypto.randomUUID(); if (!PER_TAB) store.set("pvs_visitor", VISITOR); }
-let FILE = null, FILE_URL = null, JOB = null, POLL = null, CAPTCHA = "";
+let FILE = null, FILE_URL = null, JOB = null, POLL = null, CAPTCHA = "", SAMPLE = null;
 
 function show(id) { for (const s of ["pick", "progress", "result"]) $(s).hidden = s !== id; }
 function err(el, text) { $(el).textContent = text; $(el).hidden = !text; }
@@ -250,7 +260,7 @@ function pick(file) {
     if (v.duration > MAX_S + 0.5) { err("pickErr", `That clip is ${v.duration.toFixed(0)} s long. Please trim it to ${MAX_S} s or less.`); return; }
     FILE = file; FILE_URL = url;
     $("fName").textContent = file.name; $("fDur").textContent = v.duration.toFixed(1) + " s"; $("fSize").textContent = fmtMB(file.size);
-    $("picked").hidden = false; $("drop").hidden = true; ready();
+    $("picked").hidden = false; $("drop").hidden = true; $("samples").hidden = true; ready();
   };
   v.onerror = () => err("pickErr", "We couldn't read this video. Try a different file.");
   v.src = url;
@@ -260,13 +270,30 @@ const drop = $("drop");
 drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
 drop.ondragleave = () => drop.classList.remove("over");
 drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); pick(e.dataTransfer.files[0]); };
-$("another").onclick = () => { FILE = null; $("picked").hidden = true; $("drop").hidden = false; $("file").value = ""; ready(); };
+$("another").onclick = () => { FILE = null; $("picked").hidden = true; $("drop").hidden = false; $("samples").hidden = false; $("file").value = ""; ready(); };
+
+// ---- sample clips: results computed once by the same API (samples/<clip>.json + its Lookslike video), shown
+// instantly. They use no upload, no place in line and none of the visitor's tries.
+const SAMPLES = [["clip1", "Clip 1"], ["clip2", "Clip 2"], ["clip3", "Clip 3"], ["clip4", "Clip 4"]];
+for (const [key, label] of SAMPLES) {
+  const b = document.createElement("button"); b.type = "button";
+  b.innerHTML = `<video src="clips/${key}.mp4" muted loop playsinline autoplay preload="metadata"></video><span>${label}</span>`;
+  b.onclick = async () => {
+    try {
+      const r = await (await fetch(`samples/${key}.json`)).json();
+      SAMPLE = key; JOB = null; FILE_URL = `clips/${key}.mp4`;
+      showResult(r);
+    } catch { err("pickErr", "Couldn't load that sample. Try again."); }
+  };
+  $("sgrid").appendChild(b);
+}
 
 // ---- upload + queue
 function setStep(id, state) { const el = $(id); el.className = "step" + (state ? " " + state : ""); }
 const MESSAGES = { busy: null, limited: null, unavailable: null, active: null, captcha: null };   // server messages are shown as-is
 
 function upload() {
+  SAMPLE = null;
   show("progress"); err("runErr", ""); $("retry").hidden = true;
   setStep("sUp", "now"); setStep("sLine", ""); setStep("sRun", "");
   const x = new XMLHttpRequest();
@@ -377,13 +404,14 @@ function showResult(r) {
   // Retrieval video: for every half second of the audio, the real mouth clip from the library that the
   // model matches best (the visitor's own mouth is not shown). Served by the backend, deleted with the result.
   const lk = r.lookslike;
-  $("rLkWrap").hidden = !(lk && lk.video_file && JOB);
+  $("rLkWrap").hidden = !(lk && lk.video_file && (JOB || SAMPLE));
   if (!$("rLkWrap").hidden) {
-    $("rLk").src = `${API}/api/jobs/${JOB}/${lk.video_file}`;
+    $("rLk").src = SAMPLE ? `samples/${lk.video_file}` : `${API}/api/jobs/${JOB}/${lk.video_file}`;
     $("rLkNote").textContent = "Your audio, played over real mouths from our library of recorded speakers: for each " +
       "half second, the mouth the model finds the best match. Nothing is generated or edited.";
   }
-  $("rWarn").textContent = (r.warnings || []).join(" ");
+  $("rWarn").textContent = (SAMPLE ? "Sample clip: this result was produced by the same service, ahead of time. " : "") +
+    (r.warnings || []).join(" ");
 }
 let LOOP = null;
 function replay(t) {
@@ -392,7 +420,7 @@ function replay(t) {
 }
 $("play").ontimeupdate = () => { const v = $("play"); if (LOOP && v.currentTime >= LOOP[1]) v.currentTime = LOOP[0]; };
 $("play").onseeking = () => { const v = $("play"); if (LOOP && (v.currentTime < LOOP[0] - .05 || v.currentTime > LOOP[1] + .05)) { LOOP = null; v.playbackRate = 1; } };
-$("again").onclick = () => { $("another").onclick(); $("agree").checked = false; show("pick"); ready(); };
+$("again").onclick = () => { SAMPLE = null; $("another").onclick(); $("agree").checked = false; show("pick"); ready(); };
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 checkBackend();
