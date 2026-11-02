@@ -52,6 +52,35 @@ main { padding-block: 28px 64px; }
 .samples video { border-radius: 8px; aspect-ratio: 1; object-fit: cover; pointer-events: none; }
 .samples span { display: block; font-size: 13px; margin-top: 4px; }
 @media (max-width: 560px) { .samples .sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.charts { --accent: var(--teal); --bad: var(--fail); --rule: var(--line); --fg: var(--ink); --fg2: var(--ink-2); --muted: var(--sub); }
+.charts .panel { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; margin-top: 16px; }
+.charts .strip-panel { display: grid; gap: 8px; }
+.charts .track { position: relative; height: 96px; margin-left: 74px; border-bottom: 1px solid var(--rule); margin-top: 4px; }
+.charts .bar { position: absolute; bottom: 0; border-radius: 2px 2px 0 0; background: var(--accent); opacity: .75; cursor: pointer; min-width: 2px; }
+.charts .bar:hover, .charts .bar.cur { opacity: 1; outline: 1px solid var(--fg); }
+.charts .bar.bad { background: var(--bad); opacity: 1; }
+.charts .bar.ign { background: var(--rule); opacity: 1; }
+.charts .thr { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--fg2); pointer-events: none; }
+.charts .thr span { position: absolute; right: 100%; margin-right: 6px; top: -7px; white-space: nowrap; font: 10px var(--mono); color: var(--fg2); }
+.charts .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); pointer-events: none; }
+.charts .tip { position: absolute; bottom: calc(100% + 8px); transform: translateX(-50%); background: #fff; border: 1px solid var(--rule); border-radius: 8px;
+  padding: 8px 10px; font-size: 12.5px; color: var(--fg2); white-space: nowrap; pointer-events: none; z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.12); display: none; }
+.charts .tip b { font: 600 18px var(--mono); color: var(--fg); margin-right: 8px; } .charts .tip.bad b { color: var(--bad); }
+.charts .tip .ts { display: block; font: 12px var(--mono); margin-top: 3px; } .charts .tip.bad .ts { color: var(--bad); }
+.charts .axis { position: relative; height: 14px; margin-left: 74px; font: 10px var(--mono); color: var(--muted); }
+.charts .axis span { position: absolute; transform: translateX(-50%); }
+.charts .words { display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 16px; line-height: 1.5; margin-top: 4px; }
+.charts .wbtn { font: inherit; background: none; border: 0; padding: 1px 4px; border-radius: 4px; color: var(--fg2); cursor: pointer; }
+.charts .wbtn:hover, .charts .wbtn.hov { color: var(--fg); background: var(--mist); }
+.charts .wbtn.bad { color: var(--fg); text-decoration: underline 2px var(--bad); text-underline-offset: 4px; }
+.charts .wbtn.bad sup { color: var(--bad); font: 600 10px var(--mono); margin-left: 2px; }
+.charts .wbtn.cur { background: rgba(0,199,190,.16); color: var(--fg); }
+.charts .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 11px var(--mono); color: var(--muted); }
+.charts .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.charts .offset { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: center; }
+@media (max-width: 720px) { .charts .offset { grid-template-columns: 1fr; } }
+.charts .offset p { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.charts svg.curve { width: 100%; height: auto; display: block; }
 .picked { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 720px) { .picked, .result-top { grid-template-columns: 1fr !important; } }
 video { width: 100%; border-radius: 12px; background: #000; display: block; }
@@ -189,6 +218,20 @@ section + section { margin-top: 18px; }
           <div class="stat"><b id="rFlag"></b><span>sounds with the wrong lip shape</span></div>
           <div class="stat"><b id="rDur"></b><span>clip length</span></div>
         </div>
+      </div>
+    </div>
+    <div class="charts" id="rCharts" hidden>
+      <div class="panel strip-panel">
+        <div class="label">Every sound in the clip, scored</div>
+        <div class="track" id="track"><div class="thr" id="thrLine"><span></span></div><div class="tip" id="tip"></div></div>
+        <div class="axis" id="axis"></div>
+        <div class="words" id="words"></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>sound scored above the threshold</span><span><i style="background:var(--bad)"></i>flagged: lips don't match the sound</span>
+          <span><i style="background:var(--rule)"></i>not judged (tongue/throat sounds)</span><span>click a bar or a word to replay it slowed down</span></div>
+      </div>
+      <div class="panel offset">
+        <div><div class="label">Finding the offset</div><p id="offText"></p></div>
+        <svg class="curve" id="curve" viewBox="0 0 560 170" role="img" aria-label="Sync score for each audio shift from 8 frames early to 8 frames late"></svg>
       </div>
     </div>
     <section><div class="label">By lip shape</div><div class="classes" id="rClasses"></div></section>
@@ -400,7 +443,9 @@ function showResult(r) {
     b.onclick = () => replay(f.time_s);
     $("rFlagged").appendChild(b);
   }
-  $("rTranscript").innerHTML = r.transcript ? `<b>Transcript</b> · ${esc(r.transcript)}` : "";
+  charts(r);
+  const tr = r.transcript || (r.details && r.details.transcript);
+  $("rTranscript").innerHTML = tr ? `<b>Transcript</b> · ${esc(tr)}` : "";
   // Retrieval video: for every half second of the audio, the real mouth clip from the library that the
   // model matches best (the visitor's own mouth is not shown). Served by the backend, deleted with the result.
   const lk = r.lookslike;
@@ -413,12 +458,99 @@ function showResult(r) {
   $("rWarn").textContent = (SAMPLE ? "Sample clip: this result was produced by the same service, ahead of time. " : "") +
     (r.warnings || []).join(" ");
 }
+// ---- the home page's two charts, drawn from the API response. Bars: one per phoneme, height = its score,
+// red when flagged (below the threshold the request used), grey when never judged. Curve: score per audio shift.
+const FLAG_ABS = 0.25;   // the Worker asks the API for flag_abs 0.25
+const SHAPE = {B:"lips pressed fully shut",P:"lips pressed fully shut",M:"lips pressed fully shut",F:"top teeth on the lower lip",V:"top teeth on the lower lip",
+  W:"lips rounded and pushed forward",UW:"lips rounded and pushed forward",UH:"lips rounded",OW:"lips rounded",AO:"lips rounded",OY:"lips rounded",
+  AA:"jaw open",AE:"jaw open, lips spread",AY:"jaw open, then spreading",AW:"jaw open, then rounding",
+  IY:"lips spread wide",IH:"lips slightly spread",EH:"lips slightly spread",EY:"lips spread",
+  S:"teeth close together",Z:"teeth close together",SH:"lips pushed out, teeth close",ZH:"lips pushed out, teeth close",CH:"lips pushed out, teeth close",JH:"lips pushed out, teeth close",
+  R:"lips slightly rounded",ER:"lips slightly rounded",TH:"tongue tip between the teeth"};
+let BARS = [], WORDS = [], DUR = 1, HEAD = null, PH = [];
+function charts(r) {
+  const det = r.details || {}, raw = (det.phones && det.phones.phones) || [], off = det.offset;
+  PH = raw.filter(p => p.t_end > p.t_start).map(p => ({ p: p.phone, w: p.word || "", t0: p.t_start, t1: p.t_end,
+    s: p.diag_mean, j: p.evaluated !== false && p.n_win > 0, f: !!p.flag }));
+  $("rCharts").hidden = !(PH.length || (off && off.curve));
+  const track = $("track"); track.querySelectorAll(".bar,.head").forEach(e => e.remove()); $("tip").style.display = "none";
+  $("axis").innerHTML = ""; $("words").innerHTML = ""; BARS = []; WORDS = [];
+  if (PH.length) {
+    DUR = Math.max(...PH.map(p => p.t1)) + 0.2;
+    const pct = t => (100 * t / DUR) + "%";
+    $("thrLine").style.bottom = (100 * FLAG_ABS) + "%"; $("thrLine").firstChild.textContent = "flag < " + FLAG_ABS.toFixed(2);
+    BARS = PH.map(p => {
+      const e = document.createElement("div");
+      e.className = "bar " + (!p.j ? "ign" : p.f ? "bad" : "");
+      e.style.left = pct(p.t0); e.style.width = `calc(${pct(p.t1 - p.t0)} - 1px)`;
+      e.style.height = p.j ? Math.max(4, 100 * Math.max(0, Math.min(1, p.s))) + "%" : "6px";
+      const show = () => {
+        const tp = $("tip");
+        tp.className = "tip" + (p.f ? " bad" : "");
+        tp.innerHTML = `<b>${esc(p.p)}</b>in “${esc(p.w)}” · ${p.t0.toFixed(2)} s` + (SHAPE[p.p] ? `<span class="ts" style="color:var(--fg2)">expected: ${SHAPE[p.p]}</span>` : "") +
+          `<span class="ts">${!p.j ? "not judged (no visible lip shape)" : p.f ? `score ${p.s.toFixed(2)} · flagged` : `score ${p.s.toFixed(2)}`}</span>`;
+        tp.style.left = Math.min(88, Math.max(12, 100 * ((p.t0 + p.t1) / 2) / DUR)) + "%"; tp.style.display = "block";
+        WORDS.forEach(W => W.el.classList.toggle("hov", W.ps.includes(p)));
+      };
+      const hide = () => { $("tip").style.display = "none"; WORDS.forEach(W => W.el.classList.remove("hov")); };
+      e.onmouseenter = show; e.onmouseleave = hide; e.onclick = () => replay((p.t0 + p.t1) / 2);
+      track.appendChild(e); return e;
+    });
+    HEAD = document.createElement("div"); HEAD.className = "head"; track.appendChild(HEAD);
+    for (let t = 0; t < DUR; t += DUR > 12 ? 2 : 1) { const a = document.createElement("span"); a.style.left = pct(t); a.textContent = t + "s"; $("axis").appendChild(a); }
+    PH.forEach((p, k) => {
+      const last = WORDS.at(-1);
+      if (last && last.w === p.w && Math.abs(PH[k - 1].t1 - p.t0) < 0.02) last.ps.push(p); else WORDS.push({ w: p.w, ps: [p] });
+    });
+    WORDS.forEach(W => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "wbtn";
+      const bad = W.ps.filter(p => p.f);
+      b.textContent = W.w;
+      if (bad.length) { b.classList.add("bad"); const sp = document.createElement("sup"); sp.textContent = bad.map(p => p.p).join(" "); b.appendChild(sp); }
+      W.t0 = W.ps[0].t0; W.t1 = W.ps.at(-1).t1;
+      const target = bad.length ? bad.reduce((a, c) => c.s < a.s ? c : a) : W.ps[0];
+      b.onclick = () => replay((target.t0 + target.t1) / 2);
+      W.el = b; $("words").appendChild(b);
+    });
+  }
+  curve(off);
+}
+function curve(off) {
+  if (!off || !off.curve) { $("curve").innerHTML = ""; $("offText").textContent = ""; return; }
+  const ks = Object.keys(off.curve).map(Number).sort((a, b) => a - b), vs = ks.map(k => off.curve[k]);
+  const best = off.best_offset, s0 = off.cos_at_zero, s1 = off.cos_at_best;
+  const W = 560, H = 170, L = 40, R = 14, T = 14, B = 34, F = 'font-family="Geist Mono, Menlo, monospace"';
+  const lo = 0, hi = Math.max(0.1, Math.ceil(Math.max(...vs) * 10) / 10);
+  const x = k => L + (k - ks[0]) / (ks.at(-1) - ks[0]) * (W - L - R), y = v => T + (1 - (Math.max(lo, v) - lo) / (hi - lo)) * (H - T - B);
+  const grid = [0, hi / 2, hi].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)" ${F}>${v.toFixed(1)}</text>`).join("");
+  const ticks = ks.filter(k => k % 2 === 0).map(k => `<text x="${x(k)}" y="${H - 16}" text-anchor="middle" font-size="10" fill="var(--muted)" ${F}>${k > 0 ? "+" : ""}${k}</text>`).join("");
+  const area = `M${x(ks[0])},${y(0)} ` + ks.map((k, i) => `L${x(k)},${y(vs[i])}`).join(" ") + ` L${x(ks.at(-1))},${y(0)} Z`;
+  $("curve").innerHTML = grid + ticks +
+    `<text x="${(L + W - R) / 2}" y="${H - 2}" text-anchor="middle" font-size="10.5" fill="var(--fg2)" font-family="Geist, Helvetica, Arial, sans-serif">audio shift (frames of 40 ms; + = audio later)</text>` +
+    `<path d="${area}" fill="var(--accent)" fill-opacity=".14"/>` +
+    `<polyline points="${ks.map((k, i) => `${x(k)},${y(vs[i])}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>` +
+    `<line x1="${x(0)}" x2="${x(0)}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>` +
+    `<circle cx="${x(0)}" cy="${y(off.curve[0])}" r="4" fill="#fff" stroke="var(--muted)" stroke-width="1.5"/>` +
+    `<circle cx="${x(best)}" cy="${y(off.curve[best])}" r="5" fill="var(--accent)"/>` +
+    `<text x="${x(best) + 8}" y="${y(off.curve[best]) - 6}" font-size="11" fill="var(--fg)" ${F}>after shift: ${best > 0 ? "+" : ""}${best} (${s1.toFixed(2)})</text>` +
+    (best ? `<text x="${x(0) - 10}" y="${y(off.curve[0]) - 4}" text-anchor="end" font-size="11" fill="var(--fg2)" ${F}>original, before shift (${s0.toFixed(2)})</text>` : "");
+  const late = off.offset_ms > 0, agree = off.agreement != null ? ` ${Math.round(100 * off.agreement)}% of the clip's windows agree on that shift.` : "";
+  $("offText").textContent = best
+    ? `PVSync slides the audio against the video and scores the match at each shift. The best match is ${Math.abs(best)} frame${Math.abs(best) > 1 ? "s" : ""} ${late ? "later" : "earlier"}, so this clip's audio arrives ${Math.round(Math.abs(off.offset_ms))} ms ${late ? "late" : "early"};${agree} Every sound is judged after correcting it.`
+    : `PVSync slides the audio against the video and scores the match at each shift. The best match is at zero: audio and picture are in sync.`;
+}
 let LOOP = null;
 function replay(t) {
   const v = $("play"); LOOP = [Math.max(0, t - 0.4), t + 0.4];
   v.playbackRate = 0.25; v.currentTime = LOOP[0]; v.play().catch(() => {});
 }
-$("play").ontimeupdate = () => { const v = $("play"); if (LOOP && v.currentTime >= LOOP[1]) v.currentTime = LOOP[0]; };
+$("play").ontimeupdate = () => {
+  const v = $("play"); if (LOOP && v.currentTime >= LOOP[1]) v.currentTime = LOOP[0];
+  if (HEAD) HEAD.style.left = (100 * v.currentTime / DUR) + "%";
+  const ta = v.currentTime;
+  BARS.forEach((e, k) => e.classList.toggle("cur", ta >= PH[k].t0 && ta < PH[k].t1));
+  WORDS.forEach(W => W.el.classList.toggle("cur", ta >= W.t0 && ta < W.t1));
+};
 $("play").onseeking = () => { const v = $("play"); if (LOOP && (v.currentTime < LOOP[0] - .05 || v.currentTime > LOOP[1] + .05)) { LOOP = null; v.playbackRate = 1; } };
 $("again").onclick = () => { SAMPLE = null; $("another").onclick(); $("agree").checked = false; show("pick"); ready(); };
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
