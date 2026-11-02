@@ -161,8 +161,6 @@ section + section { margin-top: 18px; }
         <label for="aOrg">Organisation <input type="text" id="aOrg" maxlength="200" autocomplete="organization"></label>
       </div>
       <label for="aUse">What would you use lip-sync checking for? <input type="text" id="aUse" maxlength="500"></label>
-      <label class="consent" for="aContact"><input type="checkbox" id="aContact"> Cantina may contact me about PVSync</label>
-      <label for="aEmail" id="aEmailWrap" hidden>Email <input type="email" id="aEmail" maxlength="200" autocomplete="email"></label>
       <div class="row" style="margin-top:10px"><button class="btn" type="submit" id="aSend">Send</button><button class="btn ghost" type="button" id="aSkip">Skip</button>
         <span class="note" id="aMsg"></span></div>
     </form>
@@ -331,12 +329,11 @@ $("retry").onclick = () => { show("pick"); ready(); };
 
 // ---- optional "about you": once per visitor, only after a successful upload
 function maybeAsk() { if (!store.get("pvs_about")) $("about").hidden = false; }
-$("aContact").onchange = () => { $("aEmailWrap").hidden = !$("aContact").checked; };
 $("aSkip").onclick = () => { store.set("pvs_about", "skipped"); $("about").hidden = true; };
 $("about").onsubmit = async e => {
   e.preventDefault();
   const body = { visitor_id: VISITOR, role: $("aRole").value || undefined, organisation: $("aOrg").value || undefined,
-                 use_case: $("aUse").value || undefined, contact_ok: $("aContact").checked, email: $("aContact").checked ? $("aEmail").value : undefined };
+                 use_case: $("aUse").value || undefined };
   $("aSend").disabled = true; $("aMsg").textContent = "";
   try {
     const r = await fetch(API + "/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
