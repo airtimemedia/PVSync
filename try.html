@@ -183,6 +183,11 @@ section + section { margin-top: 18px; }
     </div>
     <section><div class="label">By lip shape</div><div class="classes" id="rClasses"></div></section>
     <section><div class="label" id="rFlagTitle">Flagged sounds</div><div class="flagged" id="rFlagged"></div></section>
+    <section id="rLkWrap" hidden>
+      <div class="label">What the model expects to see</div>
+      <video id="rLk" controls playsinline style="max-width:560px"></video>
+      <div class="note" id="rLkNote" style="margin-top:6px"></div>
+    </section>
     <div class="transcript" id="rTranscript"></div>
     <div class="note" id="rWarn" style="margin-top:10px"></div>
     <button class="btn ghost" id="again" style="margin-top:16px">Check another video</button>
@@ -369,6 +374,15 @@ function showResult(r) {
     $("rFlagged").appendChild(b);
   }
   $("rTranscript").innerHTML = r.transcript ? `<b>Transcript</b> · ${esc(r.transcript)}` : "";
+  // Retrieval video: for every half second of the audio, the real mouth clip from the library that the
+  // model matches best (the visitor's own mouth is not shown). Served by the backend, deleted with the result.
+  const lk = r.lookslike;
+  $("rLkWrap").hidden = !(lk && lk.video_file && JOB);
+  if (!$("rLkWrap").hidden) {
+    $("rLk").src = `${API}/api/jobs/${JOB}/${lk.video_file}`;
+    $("rLkNote").textContent = "Your audio, played over real mouths from our library of recorded speakers: for each " +
+      "half second, the mouth the model finds the best match. Nothing is generated or edited.";
+  }
   $("rWarn").textContent = (r.warnings || []).join(" ");
 }
 let LOOP = null;
