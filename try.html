@@ -255,6 +255,9 @@ const DEFAULT_API = "https://pvsync-demo-backend.cantina.workers.dev";
 const TURNSTILE_SITEKEY = "0x4AAAAAAFtE5x0X7IxP27wj";
 const MAX_S = 30, MAX_MB = 95;
 const API = (new URLSearchParams(location.search).get("api") || DEFAULT_API).replace(/\/$/, "");
+// ?lookslike=0 (or off/false/no) hides the "What the model expects to see" video and tells the backend not to make it.
+// Anything else, or no parameter, shows it. Set it in the link that points here.
+const LOOKSLIKE = !["0", "off", "false", "no"].includes((new URLSearchParams(location.search).get("lookslike") || "").toLowerCase());
 const $ = id => document.getElementById(id);
 const CLASS_NAMES = { lip_closures: "Lips pressing shut (B P M)", lip_to_teeth: "Teeth on lower lip (F V)", rounded: "Rounded lips (W OO OH)",
   open_vowels: "Mouth open (AH AE)", spread_vowels: "Lips spread (EE IH EH)", sibilants: "Teeth together (S SH CH)", r_th: "R and TH" };
@@ -344,6 +347,7 @@ function upload() {
   x.setRequestHeader("Content-Type", FILE.type || "video/mp4");
   x.setRequestHeader("X-Visitor-Id", VISITOR);
   if (CAPTCHA) x.setRequestHeader("X-Turnstile-Token", CAPTCHA);
+  x.setRequestHeader("X-Lookslike", LOOKSLIKE ? "1" : "0");
   x.upload.onprogress = e => { if (e.lengthComputable) { const p = Math.round(100 * e.loaded / e.total); $("upBar").style.width = p + "%"; $("upPct").textContent = p + "%"; } };
   // No response at all (as opposed to an error message from us): a dropped connection, or a VPN,
   // company network or ad blocker that blocks the upload service.
@@ -449,7 +453,7 @@ function showResult(r) {
   // Retrieval video: for every half second of the audio, the real mouth clip from the library that the
   // model matches best (the visitor's own mouth is not shown). Served by the backend, deleted with the result.
   const lk = r.lookslike;
-  $("rLkWrap").hidden = !(lk && lk.video_file && (JOB || SAMPLE));
+  $("rLkWrap").hidden = !(LOOKSLIKE && lk && lk.video_file && (JOB || SAMPLE));
   if (!$("rLkWrap").hidden) {
     $("rLk").src = SAMPLE ? `samples/${lk.video_file}` : `${API}/api/jobs/${JOB}/${lk.video_file}`;
     $("rLkNote").textContent = "Your audio, played over real mouths from our library of recorded speakers: for each " +
