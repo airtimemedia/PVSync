@@ -205,8 +205,11 @@ const CLASS_NAMES = { lip_closures: "Lips pressing shut (B P M)", lip_to_teeth: 
 $("maxS").textContent = MAX_S; $("maxMB").textContent = MAX_MB;
 
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
-let VISITOR = store.get("pvs_visitor");
-if (!VISITOR) { VISITOR = "v-" + crypto.randomUUID(); store.set("pvs_visitor", VISITOR); }
+// `?tab` (load testing): each browser tab is its own visitor, so N tabs make N jobs instead of sharing one.
+// The per-network limit still applies. Normal visitors keep one id per browser.
+const PER_TAB = new URLSearchParams(location.search).has("tab");
+let VISITOR = PER_TAB ? null : store.get("pvs_visitor");
+if (!VISITOR) { VISITOR = "v-" + crypto.randomUUID(); if (!PER_TAB) store.set("pvs_visitor", VISITOR); }
 let FILE = null, FILE_URL = null, JOB = null, POLL = null, CAPTCHA = "";
 
 function show(id) { for (const s of ["pick", "progress", "result"]) $(s).hidden = s !== id; }
@@ -269,7 +272,9 @@ function upload() {
   x.setRequestHeader("X-Visitor-Id", VISITOR);
   if (CAPTCHA) x.setRequestHeader("X-Turnstile-Token", CAPTCHA);
   x.upload.onprogress = e => { if (e.lengthComputable) { const p = Math.round(100 * e.loaded / e.total); $("upBar").style.width = p + "%"; $("upPct").textContent = p + "%"; } };
-  x.onerror = () => fail("The upload didn't go through. Check your connection and try again.", true);
+  // No response at all (as opposed to an error message from us): a dropped connection, or a VPN,
+  // company network or ad blocker that blocks the upload service.
+  x.onerror = () => fail("The upload didn't reach us. Check your connection; if you're on a VPN or company network, or use an ad blocker, try turning it off or another network.", true);
   x.onload = () => {
     let b = {}; try { b = JSON.parse(x.responseText); } catch {}
     if (x.status === 202 || (x.status === 409 && b.code === "active" && b.job_id)) {
