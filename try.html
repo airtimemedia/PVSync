@@ -37,6 +37,8 @@ main { padding-block: 28px 64px; }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--ink); }
 .note { font-size: .85rem; color: var(--sub); }
+.result h2.lk-title { font: 500 clamp(1.8rem, 4.5vw, 2.5rem)/1.1 var(--serif); margin: 6px 0 8px; }
+.lk-lead { font-size: 1.15rem; color: var(--ink-2); max-width: 640px; margin: 0 0 14px; }
 #rLkNote p { margin: 0 0 6px; } #rLkNote ul { margin: 0 0 6px; padding-left: 18px; } #rLkNote li { margin-bottom: 4px; }
 .banner { border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: .95rem; }
 .banner.warn { background: var(--inc-bg); color: var(--ink); }
@@ -239,6 +241,12 @@ section + section { margin-top: 18px; }
     <section><div class="label" id="rFlagTitle">Flagged sounds</div><div class="flagged" id="rFlagged"></div></section>
     <section id="rLkWrap" hidden>
       <div class="label">Mouths the model pairs with your audio</div>
+      <h2 class="lk-title">What good lip sync looks like for your audio</h2>
+      <p class="lk-lead"><strong>This is not your video.</strong> For every half second of your audio, we found the real
+        recorded mouth, out of 28,000 speakers in our library, that the model thinks matches it best, and played them back
+        to back. The face changes every half second; watch the lips, not the person.</p>
+      <p class="lk-lead"><strong>It isn't perfect.</strong> Each match is a half-second clip picked for the half second as a
+        whole, not sound by sound, so individual mouth shapes inside it can be off. For a per-sound check, use the scores above.</p>
       <video id="rLk" controls playsinline style="max-width:560px"></video>
       <div class="note" id="rLkNote" style="margin-top:6px"></div>
     </section>
@@ -459,9 +467,6 @@ function showResult(r) {
     $("rLk").src = SAMPLE ? `samples/${lk.video_file}` : `${API}/api/jobs/${JOB}/${lk.video_file}`;
     // Static text only (no response data), so innerHTML is safe here.
     $("rLkNote").innerHTML =
-      "<p>A rough picture of what the model counts as good lip sync for your audio. We cut your audio into 480 ms pieces and, " +
-      "for each piece, picked the mouth clip from our library of 28,000 recorded speakers that the model scores highest. " +
-      "The clips are joined end to end, so the speaker changes every half second.</p>" +
       "<p>It's an indication, not a reconstruction:</p><ul>" +
       "<li><strong>Each piece holds several sounds.</strong> 480 ms usually covers 4–6 phonemes, so a clip is chosen for how " +
       "well it fits the piece as a whole. Within a piece, individual mouth shapes can still be off. The per-sound scores " +
