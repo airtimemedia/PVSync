@@ -37,6 +37,7 @@ main { padding-block: 28px 64px; }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--ink); }
 .note { font-size: .85rem; color: var(--sub); }
+#rLkNote p { margin: 0 0 6px; } #rLkNote ul { margin: 0 0 6px; padding-left: 18px; } #rLkNote li { margin-bottom: 4px; }
 .banner { border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: .95rem; }
 .banner.warn { background: var(--inc-bg); color: var(--ink); }
 .banner.err { background: var(--fail-bg); color: var(--ink); }
@@ -237,7 +238,7 @@ section + section { margin-top: 18px; }
     <section><div class="label">By lip shape</div><div class="classes" id="rClasses"></div></section>
     <section><div class="label" id="rFlagTitle">Flagged sounds</div><div class="flagged" id="rFlagged"></div></section>
     <section id="rLkWrap" hidden>
-      <div class="label">What the model expects to see</div>
+      <div class="label">Mouths the model pairs with your audio</div>
       <video id="rLk" controls playsinline style="max-width:560px"></video>
       <div class="note" id="rLkNote" style="margin-top:6px"></div>
     </section>
@@ -255,7 +256,7 @@ const DEFAULT_API = "https://pvsync-demo-backend.cantina.workers.dev";
 const TURNSTILE_SITEKEY = "0x4AAAAAAFtE5x0X7IxP27wj";
 const MAX_S = 30, MAX_MB = 95;
 const API = (new URLSearchParams(location.search).get("api") || DEFAULT_API).replace(/\/$/, "");
-// ?lookslike=0 (or off/false/no) hides the "What the model expects to see" video and tells the backend not to make it.
+// ?lookslike=0 (or off/false/no) hides the "Mouths the model pairs with your audio" video and tells the backend not to make it.
 // Anything else, or no parameter, shows it. Set it in the link that points here.
 const LOOKSLIKE = !["0", "off", "false", "no"].includes((new URLSearchParams(location.search).get("lookslike") || "").toLowerCase());
 const $ = id => document.getElementById(id);
@@ -456,8 +457,18 @@ function showResult(r) {
   $("rLkWrap").hidden = !(LOOKSLIKE && lk && lk.video_file && (JOB || SAMPLE));
   if (!$("rLkWrap").hidden) {
     $("rLk").src = SAMPLE ? `samples/${lk.video_file}` : `${API}/api/jobs/${JOB}/${lk.video_file}`;
-    $("rLkNote").textContent = "Your audio, played over real mouths from our library of recorded speakers: for each " +
-      "half second, the mouth the model finds the best match. Nothing is generated or edited.";
+    // Static text only (no response data), so innerHTML is safe here.
+    $("rLkNote").innerHTML =
+      "<p>A rough picture of what the model counts as good lip sync for your audio. We cut your audio into 480 ms pieces and, " +
+      "for each piece, picked the mouth clip from our library of 28,000 recorded speakers that the model scores highest. " +
+      "The clips are joined end to end, so the speaker changes every half second.</p>" +
+      "<p>It's an indication, not a reconstruction:</p><ul>" +
+      "<li><strong>Each piece holds several sounds.</strong> 480 ms usually covers 4–6 phonemes, so a clip is chosen for how " +
+      "well it fits the piece as a whole. Within a piece, individual mouth shapes can still be off. The per-sound scores " +
+      "above are the precise check; this video isn't.</li>" +
+      "<li><strong>A clip is always picked.</strong> Even when nothing in the library matches a piece well, the model takes " +
+      "the best of what's there.</li></ul>" +
+      "<p>Nothing is generated or edited.</p>";
   }
   $("rWarn").textContent = (SAMPLE ? "Sample clip: this result was produced by the same service, ahead of time. " : "") +
     (r.warnings || []).join(" ");
