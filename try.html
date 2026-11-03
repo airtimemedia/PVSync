@@ -53,8 +53,8 @@ main { padding-block: 28px 64px; }
 .samples button { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 6px; cursor: pointer; text-align: left; font: inherit; }
 .samples button:hover { border-color: var(--teal); background: #f2fbfa; }
 .samples video { border-radius: 8px; aspect-ratio: 1; object-fit: cover; pointer-events: none; }
-.samples span { display: block; font-size: 13px; margin-top: 4px; }
-.samples small { display: block; font-size: 11px; color: var(--sub); }
+.samples span { display: block; font-size: 13px; margin-top: 4px; white-space: nowrap; overflow: hidden; }
+.samples .pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; line-height: 16px; vertical-align: 1px; background: #e6f6f3; color: var(--teal-ink); border: 1px solid #bfe7df; font-weight: 600; white-space: nowrap; }
 @media (max-width: 560px) { .samples .sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .charts { --accent: var(--teal); --bad: var(--fail); --rule: var(--line); --fg: var(--ink); --fg2: var(--ink-2); --muted: var(--sub); }
 .charts .panel { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; margin-top: 16px; }
@@ -333,7 +333,7 @@ $("another").onclick = () => { FILE = null; $("picked").hidden = true; $("drop")
 const SAMPLES = [["clip1", "Clip 1"], ["clip2", "Clip 2"], ["clip3", "Clip 3"], ["clip4", "Clip 4"], ["clip5", "Clip 5", "Good sample"]];
 for (const [key, label, tag] of SAMPLES) {
   const b = document.createElement("button"); b.type = "button";
-  b.innerHTML = `<video src="clips/${key}.mp4" muted loop playsinline autoplay preload="metadata"></video><span>${label}</span>${tag ? `<small>${tag}</small>` : ""}`;
+  b.innerHTML = `<video src="clips/${key}.mp4" muted loop playsinline autoplay preload="metadata"></video><span>${label}${tag ? `<b class="pill">${tag}</b>` : ""}</span>`;
   b.onclick = async () => {
     try {
       const r = await (await fetch(`samples/${key}.json`)).json();
