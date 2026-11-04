@@ -63,6 +63,9 @@ section.mist { background: var(--mist); }
 .tagline em { color: var(--on-night); font-style: italic; }
 .authors, .affils { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; }
 .authors { gap: .35rem 1.4rem; font-size: 1.05rem; }
+.authors a.li { display: inline-block; vertical-align: -1px; line-height: 0; margin-left: 6px; color: currentColor; opacity: .55; transition: opacity .15s, color .15s; }
+.authors a.li:hover { opacity: 1; color: #0a66c2; }
+.authors a.li svg { width: 14px; height: 14px; }
 .affils { gap: .2rem 1.2rem; font-size: .88rem; color: var(--on-night-muted); margin-top: .5rem; }
 .notes { font-size: .8rem; color: var(--on-night-muted); margin-top: .35rem; }
 sup { font-size: .66em; margin-left: 1px; }
@@ -125,6 +128,12 @@ section.night a { color: var(--teal); }
 .ptip .c { font: 600 .95rem var(--sans); display: flex; align-items: center; gap: 7px; }
 .ptip .c i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .ptip .m { font: 12px var(--mono-f); color: #b9c4c3; margin-top: 3px; }
+.ptip .th { width: 64px; height: 64px; border-radius: 6px; margin-top: 7px; background-repeat: no-repeat; background-color: #222; }
+.mplay { display: flex; gap: 16px; align-items: center; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.mplay[hidden] { display: none; }
+.mplay video { width: 144px; height: 144px; border-radius: 10px; background: #000; flex: none; }
+.mplay .c { font: 600 1rem var(--sans); display: flex; align-items: center; gap: 7px; } .mplay .c i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.mplay .m { font: 12px var(--mono-f); color: var(--sub); margin-top: 3px; } .mplay .fine { margin: 8px 0 0; }
 .legend2 { display: grid; gap: 6px; }
 .chip { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; border: 1px solid var(--line); background: #fff;
   border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: border-color .15s, opacity .15s; color: var(--ink); }
@@ -266,7 +275,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   <div class="wrap hero-text">
     <h1>PVSync</h1>
     <p class="tagline">A unified lip-sync expert for <em>timing</em> and <em>articulation</em></p>
-    <ul class="authors"><li>Kevin Stephen<sup>1,2,★,†</sup></li><li>Varun Menon<sup>2,★</sup></li><li>Timo Mertens<sup>2</sup></li><li>Nikita Drobyshev<sup>2</sup></li></ul>
+    <ul class="authors"><li>Kevin Stephen<sup>1,2,★,†</sup><a class="li" href="https://www.linkedin.com/in/kevin-stephen/" target="_blank" rel="noopener" aria-label="Kevin Stephen on LinkedIn" title="Kevin Stephen on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a></li><li>Varun Menon<sup>2,★</sup><a class="li" href="https://www.linkedin.com/in/va-run-me-non/" target="_blank" rel="noopener" aria-label="Varun Menon on LinkedIn" title="Varun Menon on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a></li><li>Timo Mertens<sup>2</sup><a class="li" href="https://www.linkedin.com/in/timo-mertens-b2153bb/" target="_blank" rel="noopener" aria-label="Timo Mertens on LinkedIn" title="Timo Mertens on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a></li><li>Nikita Drobyshev<sup>2</sup><a class="li" href="https://www.linkedin.com/in/nikita-drobyshev-039569149/" target="_blank" rel="noopener" aria-label="Nikita Drobyshev on LinkedIn" title="Nikita Drobyshev on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a></li></ul>
     <ul class="affils"><li><sup>1</sup>University of Southern California</li><li><sup>2</sup>Cantina Inc.</li></ul>
     <div class="notes">★ Equal contribution · † Work done during an internship at Cantina Inc.</div>
     <div class="pills">
@@ -363,7 +372,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     <div class="kicker">Inside the model</div>
     <h2 class="big">Sounds and lip shapes land in the same places</h2>
     <p class="lede">Every dot is one phone from held-out speech, embedded by PVSync. Colours are the paper's eight viseme classes: groups of sounds
-      that look the same on the lips. Hover a dot to see its class; hover a class to light it up.</p>
+      that look the same on the lips. Hover a dot to see its class and the mouth it came from; click a dot to play that exact moment with its sound. Hover a class to light it up.</p>
     <div class="vmap">
       <div>
         <div class="seg2" role="group" aria-label="Embedding to show">
@@ -371,6 +380,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
         </div>
         <p class="vnote" id="vnote"></p>
         <div class="plot" id="plot"><canvas id="cv" width="960" height="720" aria-label="t-SNE map of phone embeddings coloured by viseme class"></canvas><div class="ptip" id="ptip"></div></div>
+        <div class="mplay" id="mplay" hidden><video id="mvid" playsinline loop></video><div><div class="c" id="mcap"></div><div class="m" id="msub"></div><p class="fine">The phone itself is the middle of the clip, with a quarter second on each side. Mouth crops from held-out research footage; nothing is generated.</p></div></div>
         <div class="why">
           <h3>Why some classes mix</h3>
           <p>The lip-explicit classes, <span class="dot" style="--c:#d1495b"></span>bilabial (/p b m/) and <span class="dot" style="--c:#e9a23b"></span>labiodental
@@ -712,7 +722,8 @@ load(0);
     video: "Video embeddings: bilabial and labiodental form their own islands; classes that look alike on the lips overlap (see below).",
     joint: "Audio (filled) and video (rings) in one map. Hover a dot to draw the line to the same phone's other half." };
   const cv = document.getElementById("cv"), g = cv.getContext("2d"), tip = document.getElementById("ptip"), L = document.getElementById("legend2");
-  let T, view = "audio", P = [], from = null, t0 = 0, hov = -1, hiCls = null, iso = null;
+  let T, MM = null, view = "audio", P = [], from = null, t0 = 0, hov = -1, hiCls = null, iso = null;
+  const SC = 60;   // thumbnails per row in data/map/thumbs.jpg (64 px each)
   const DPR = Math.min(2, window.devicePixelRatio || 1);
   function size() { const w = cv.clientWidth; cv.width = w * DPR; cv.height = w * .75 * DPR; draw(); }
   function target(v) {
@@ -768,15 +779,22 @@ load(0);
     if (best < 0) { tip.style.display = "none"; return; }
     const p = P[best], c = T.cls[p[2]], meta = CL.find(z => z[0] === c);
     tip.innerHTML = `<div class="c"><i style="background:${COL[c]}"></i>${NAME[c]}</div><div class="m">${meta[2]}</div>` +
-      `<div class="m">phone ${T.ph[p[2]]} · ${p[3] === "a" ? "audio" : "video (lips)"}</div>`;
+      `<div class="m">phone ${T.ph[p[2]]}${MM && MM[p[2]].word ? ` in “${MM[p[2]].word}”` : ""} · ${p[3] === "a" ? "audio" : "video (lips)"}</div>` +
+      (MM ? `<div class="th" style="background-image:url(data/map/thumbs.jpg);background-position:-${(p[2] % SC) * 64}px -${Math.floor(p[2] / SC) * 64}px"></div><div class="m">click to play</div>` : "");
     tip.style.display = "block";
     const tx = ev.clientX - b.left + 14, ty = ev.clientY - b.top + 14;
     tip.style.left = Math.min(tx, b.width - tip.offsetWidth - 8) + "px"; tip.style.top = Math.min(ty, b.height - tip.offsetHeight - 8) + "px";
   }
+  cv.addEventListener("click", ev => { pick(ev); if (hov < 0 || !MM) return; const i = P[hov][2], m = MM[i], c = T.cls[i];
+    const box = document.getElementById("mplay"), v = document.getElementById("mvid"); box.hidden = false;
+    document.getElementById("mcap").innerHTML = `<i style="background:${COL[c]}"></i>/${T.ph[i]}/${m.word ? ` in “${m.word}”` : ""}`;
+    document.getElementById("msub").textContent = `${NAME[c]} · ${m.dur_ms} ms`;
+    v.src = `data/map/clips/${i}.mp4`; v.muted = false; v.play().catch(() => { v.muted = true; v.play().catch(() => {}); }); });
   cv.addEventListener("pointermove", pick); cv.addEventListener("pointerleave", () => { hov = -1; tip.style.display = "none"; draw(); });
   document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => setView(b.dataset.v));
   fetch("data/tsne.json").then(r => r.json()).then(d => {
     T = d;
+    fetch("data/map/meta.json").then(r => r.ok ? r.json() : null).then(m => { if (m && m.length === T.n) MM = m; }).catch(() => {});
     const phs = c => [...new Set(T.ph.filter((p, i) => T.cls[i] === c))].sort().join(" ");
     CL.forEach(([k, n, desc, col]) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "chip";
