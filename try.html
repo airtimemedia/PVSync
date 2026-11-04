@@ -127,6 +127,9 @@ video { width: 100%; border-radius: 12px; background: #000; display: block; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
 .stat { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
 .stat b { display: block; font: 600 1.35rem var(--mono); font-variant-numeric: tabular-nums; }
+.rule { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .88rem; color: var(--ink-2); margin-bottom: 14px; }
+.rule .label { margin-bottom: 4px; } .rule ul { margin: 0; padding-left: 18px; } .rule li { margin: 3px 0; }
+.rule li.hit { color: var(--ink); font-weight: 600; } .rule .mine { font: 12px var(--mono); color: var(--sub); white-space: nowrap; }
 .stat span { font-size: .8rem; color: var(--sub); }
 .classes { display: grid; gap: 8px; margin-top: 8px; }
 .cls { display: grid; grid-template-columns: 220px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: .9rem; }
@@ -222,6 +225,7 @@ section + section { margin-top: 18px; }
           <div class="stat"><b id="rFlag"></b><span>sounds with the wrong lip shape</span></div>
           <div class="stat"><b id="rDur"></b><span>clip length</span></div>
         </div>
+        <div class="rule"><div class="label">How the verdict is decided</div><ul id="rRule"></ul></div>
       </div>
     </div>
     <div class="charts" id="rCharts" hidden>
@@ -444,6 +448,18 @@ function showResult(r) {
   $("rOff").textContent = off == null ? "–" : off === 0 ? "in sync" : `${Math.abs(Math.round(off))} ms ${off > 0 ? "late" : "early"}`;
   $("rFlag").textContent = r.n_phonemes ? `${r.n_flagged} of ${r.n_phonemes}` : "–";
   $("rDur").textContent = r.duration_s ? r.duration_s.toFixed(1) + " s" : "–";
+  // The thresholds the backend asks the API for (pvsync-demo-backend basetenBody: flag_abs 0.25, fail_rate 0.10)
+  // and the API's own defaults for the rest (pvsync-api ScoreRequest). Bold = the rule that decided this clip.
+  const rate = r.n_phonemes ? r.n_flagged / r.n_phonemes : null, late = off != null && off > 125, early = off != null && -off > 45;
+  const inc = r.verdict === "INCONCLUSIVE";
+  $("rRule").innerHTML = [
+    [!inc && rate != null && rate > 0.10, "<b>PASS</b> needs at most <b>10%</b> of judged sounds with the wrong lip shape. A sound counts as wrong when its score is below 0.25.",
+      rate == null ? "" : `this clip: ${r.n_flagged} of ${r.n_phonemes} (${(100 * rate).toFixed(1)}%)`],
+    [!inc && (late || early), "The audio must also be no more than <b>125 ms late</b> or <b>45 ms early</b>; it is corrected before the sounds are judged.",
+      off == null ? "" : `this clip: ${off === 0 ? "in sync" : `${Math.abs(Math.round(off))} ms ${off > 0 ? "late" : "early"}`}`],
+    [false, "<b>FAIL</b> if either rule is broken.", ""],
+    [inc, "<b>INCONCLUSIVE</b> (can't judge) if fewer than 20 sounds can be scored, no face is found in more than 30% of frames, or a second face shows up in more than 10% of them.", ""],
+  ].map(([hit, txt, mine]) => `<li${hit ? ' class="hit"' : ""}>${txt}${mine ? ` <span class="mine">${mine}</span>` : ""}</li>`).join("");
   const cls = Object.entries(r.classes || {}).filter(([, c]) => c.n > 0);
   $("rClasses").innerHTML = cls.length ? cls.map(([k, c]) =>
     `<div class="cls"><span>${esc(CLASS_NAMES[k] || k)}</span><span class="tr"><i style="width:${(100 * c.n_flagged / c.n).toFixed(0)}%"></i></span><em>${c.n_flagged}/${c.n} wrong</em></div>`).join("")
