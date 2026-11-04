@@ -128,7 +128,14 @@ video { width: 100%; border-radius: 12px; background: #000; display: block; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
 .stat { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
 .stat b { display: block; font: 600 1.35rem var(--mono); font-variant-numeric: tabular-nums; }
-.rule { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .88rem; color: var(--ink-2); margin-bottom: 14px; }
+.vrow { display: flex; align-items: center; gap: 8px; }
+.info { position: relative; display: inline-flex; }
+.info > button { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--sub); font: 600 12px/1 var(--serif); font-style: italic; cursor: help; padding: 0; }
+.info > button:hover, .info > button:focus-visible, .info.open > button { border-color: var(--ink); color: var(--ink); }
+.rule { position: absolute; left: 0; top: calc(100% + 8px); z-index: 20; width: min(380px, 80vw); background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 14px; font-size: .85rem; color: var(--ink-2); box-shadow: 0 8px 24px rgba(15,21,21,.12); display: none; }
+.info:hover .rule, .info:focus-within .rule, .info.open .rule { display: block; }
+.rule::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
 .rule .label { margin-bottom: 4px; } .rule ul { margin: 0; padding-left: 18px; } .rule li { margin: 3px 0; }
 .rule li.hit { color: var(--ink); font-weight: 600; } .rule .mine { font: 12px var(--mono); color: var(--sub); white-space: nowrap; }
 .stat span { font-size: .8rem; color: var(--sub); }
@@ -218,7 +225,9 @@ section + section { margin-top: 18px; }
     <div class="result-top">
       <div><video id="play" controls playsinline></video><div class="note" style="margin-top:6px">Click a flagged sound to replay it at ¼ speed.</div></div>
       <div>
-        <span class="verdict" id="rVerdict"></span>
+        <div class="vrow"><span class="verdict" id="rVerdict"></span>
+          <span class="info" id="rInfo"><button type="button" aria-label="How the verdict is decided" aria-describedby="rRuleBox">i</button>
+            <div class="rule" id="rRuleBox" role="tooltip"><div class="label">How the verdict is decided</div><ul id="rRule"></ul></div></span></div>
         <h2 id="rStatus"></h2>
         <ul class="reasons" id="rReasons"></ul>
         <div class="stats">
@@ -226,7 +235,6 @@ section + section { margin-top: 18px; }
           <div class="stat"><b id="rFlag"></b><span>sounds with the wrong lip shape</span></div>
           <div class="stat"><b id="rDur"></b><span>clip length</span></div>
         </div>
-        <div class="rule"><div class="label">How the verdict is decided</div><ul id="rRule"></ul></div>
       </div>
     </div>
     <div class="charts" id="rCharts" hidden>
@@ -440,6 +448,8 @@ $("about").onsubmit = async e => {
 };
 
 // ---- result
+$("rInfo").querySelector("button").onclick = e => { e.stopPropagation(); $("rInfo").classList.toggle("open"); };
+document.addEventListener("click", e => { if (!$("rInfo").contains(e.target)) $("rInfo").classList.remove("open"); });
 function showResult(r) {
   show("result"); $("about").hidden = true;
   const v = $("play"); v.src = FILE_URL;
