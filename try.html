@@ -168,9 +168,11 @@ section + section { margin-top: 18px; }
 
   <!-- 1. pick -->
   <section class="card" id="pick">
+    <div class="banner warn"><strong>English only for now.</strong> PVSync transcribes and aligns the speech in English, so videos in other
+      languages can't be judged reliably.</div>
     <label class="drop" id="drop" for="file">
       <b>Choose a video</b>
-      <span class="note">MP4 or MOV · one person speaking · up to <span id="maxS">30</span> seconds and <span id="maxMB">95</span> MB</span>
+      <span class="note">MP4 or MOV · one person speaking English · up to <span id="maxS">30</span> seconds and <span id="maxMB">95</span> MB</span>
       <input type="file" id="file" accept="video/*" hidden>
     </label>
     <div class="banner err" id="pickErr" hidden style="margin-top:14px"></div>
